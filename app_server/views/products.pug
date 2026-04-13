@@ -1,0 +1,93 @@
+extends layout
+
+block content
+  .container.py-5
+    .row
+      .col-12
+        h1.display-4.text-center.mb-5 #{title}
+        p.lead.text-center.mb-5 Explora nuestros productos tecnológicos de alta calidad
+
+    .row.g-4
+      each product in products
+        .col-lg-4.col-md-6
+          .card.h-100.shadow-sm.product-card
+            img.card-img-top(src=product.imagen, alt=product.nombre, onerror="this.src='/images/placeholder.png'")
+            .card-body.d-flex.flex-column
+              h5.card-title= product.nombre
+              p.card-text= product.descripcion
+              .mt-auto
+                .d-flex.justify-content-between.align-items-center.mb-3
+                  .price
+                      strong $#{(product.precio).toFixed(2)}
+                  small.text-muted Stock: #{product.stock}
+                button.btn.btn-primary.w-100.add-to-cart-btn(
+                  data-product-id=product._id,
+                  data-product-name=product.nombre,
+                  data-product-price=product.precio,
+                  data-product-image=product.imagen
+                ) Añadir al Carrito
+
+    // Modal de confirmación
+    .modal.fade#add-to-cart-modal(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title Producto añadido al carrito
+            button.btn-close(type='button', data-bs-dismiss='modal')
+          .modal-body
+            p El producto ha sido añadido a tu carrito de compras.
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Continuar comprando
+            a.btn.btn-primary#modal-cart-link(href='/cart') Ver carrito
+
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+      const modal = new bootstrap.Modal(document.getElementById('add-to-cart-modal'));
+      const modalCartLink = document.getElementById('modal-cart-link');
+
+      // Función para obtener o crear sessionId
+      function getSessionId() {
+        let sessionId = localStorage.getItem('cartSessionId');
+        if (!sessionId) {
+          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('cartSessionId', sessionId);
+        }
+        return sessionId;
+      }
+
+      addToCartButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const productId = this.getAttribute('data-product-id');
+          const sessionId = getSessionId();
+
+          // Enviar a API
+          fetch('/api/cart/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId: sessionId,
+              productId: productId,
+              cantidad: 1
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data._id) {
+              if (modalCartLink) {
+                modalCartLink.href = '/cart?sessionId=' + sessionId;
+              }
+              modal.show();
+            } else {
+              alert('Error al añadir al carrito: ' + (data.message || 'Error desconocido'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+          });
+        });
+      });
+    });

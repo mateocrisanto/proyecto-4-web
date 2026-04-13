@@ -1,0 +1,146 @@
+extends layout
+
+block content
+  .container.py-5
+    .row
+      .col-12
+        h1.display-4.text-center.mb-5 #{title}
+
+    if cart && cart.items && cart.items.length > 0
+      .row
+        .col-lg-8
+          .card.shadow
+            .card-header
+              h4.mb-0 Items en tu carrito
+            .card-body
+              each item in cart.items
+                .row.mb-4.align-items-center
+                  .col-md-2
+                    img.img-fluid.rounded(src=item.imagen, alt=item.nombre, onerror="this.src='/images/placeholder.png'")
+                  .col-md-4
+                    h5= item.nombre
+                    p.text-muted $#{(item.precio).toFixed(2)} c/u
+                  .col-md-3
+                    .input-group
+                      button.btn.btn-outline-secondary.btn-sm(type='button', onclick=`updateQuantity('${item.productId}', ${item.cantidad - 1})`) -
+                      input.form-control.text-center(type='number', value=item.cantidad, min='1', onchange=`updateQuantity('${item.productId}', this.value)`)
+                      button.btn.btn-outline-secondary.btn-sm(type='button', onclick=`updateQuantity('${item.productId}', ${item.cantidad + 1})`) +
+                  .col-md-2.text-end
+                    strong $#{(item.precio * item.cantidad).toFixed(2)}
+                  .col-md-1.text-end
+                    button.btn.btn-outline-danger.btn-sm(type='button', onclick=`removeItem('${item.productId}')`)
+                      i.fas.fa-trash
+
+        .col-lg-4
+          .card.shadow
+            .card-header
+              h4.mb-0 Resumen del pedido
+            .card-body
+              .d-flex.justify-content-between.mb-3
+                strong Subtotal:
+                span $#{(cart.total).toFixed(2)}
+              .d-flex.justify-content-between.mb-3
+                strong IVA (12%):
+                span $#{(cart.total * 0.12).toFixed(2)}
+              hr
+              .d-flex.justify-content-between.mb-4
+                strong.h5 Total:
+                span.h5 $#{ (cart.total * 1.12).toFixed(2) }
+              button.btn.btn-success.btn-lg.w-100 Proceder al pago
+              button.btn.btn-outline-secondary.btn-lg.w-100.mt-2(type='button', onclick='clearCart()') Vaciar carrito
+    else
+      .row
+        .col-12.text-center
+          .empty-cart.py-5
+            i.fas.fa-shopping-cart.fa-4x.text-muted.mb-4
+            h3 Carrito vacío
+            p.text-muted No has añadido productos a tu carrito aún.
+            a.btn.btn-primary.btn-lg(href='/products') Explorar productos
+
+  script.
+    // Obtener sessionId del servidor o localStorage
+    let sessionId = '#{sessionId}';
+    if (sessionId === 'default-session') {
+      sessionId = localStorage.getItem('cartSessionId') || 'default-session';
+    }
+
+    function updateQuantity(productId, newQuantity) {
+      if (newQuantity < 1) return;
+
+      fetch('/api/cart/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: sessionId,
+          productId: productId,
+          cantidad: parseInt(newQuantity)
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data._id) {
+          location.reload();
+        } else {
+          alert('Error al actualizar cantidad');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión');
+      });
+    }
+
+    function removeItem(productId) {
+      if (!confirm('¿Estás seguro de que quieres eliminar este producto del carrito?')) return;
+
+      fetch('/api/cart/remove', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: sessionId,
+          productId: productId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data._id) {
+          location.reload();
+        } else {
+          alert('Error al eliminar producto');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión');
+      });
+    }
+
+    function clearCart() {
+      if (!confirm('¿Estás seguro de que quieres vaciar el carrito?')) return;
+
+      fetch('/api/cart/clear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: sessionId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data._id) {
+          location.reload();
+        } else {
+          alert('Error al vaciar carrito');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión');
+      });
+    }

@@ -1,0 +1,1 @@
+{"nombre":"Test","apellido":"User","identificacion":12345,"direccion":"Quito","telefono":"0987654321","email":"testuser@example.com","services":{"internetPlans":["10 Mbps"],"phonePlans":["Telefonia local"],"mobilePlans":["Plan celular Basico"],"internationalChannels":["CNN"]}}

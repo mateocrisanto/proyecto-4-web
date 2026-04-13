@@ -1,0 +1,42 @@
+extends layout
+
+block content
+  .py-5
+    h1.mb-4 #{title}
+    p.lead Elige los servicios que mejor se adapten a tu hogar o empresa.
+    .row.row-cols-1.row-cols-md-2.g-4
+      each plan in internetPlans
+        .col
+          .card.h-100
+            .card-body
+              h5.card-title #{plan}
+              p.card-text Velocidad confiable para streaming, teletrabajo y entretenimiento.
+    hr.my-5
+    h2 Telefonía
+    .row.row-cols-1.row-cols-md-2.g-4
+      each plan in phonePlans
+        .col
+          .card.h-100
+            .card-body
+              h5.card-title #{plan}
+              p.card-text Llamadas y mensajes con cobertura nacional e internacional.
+    hr.my-5
+    h2 Planes celulares
+    .row.row-cols-1.row-cols-md-3.g-4
+      each plan in mobilePlans
+        .col
+          .card.h-100
+            .card-body
+              h5.card-title #{plan}
+              p.card-text Plan celular flexible para tus necesidades diarias.
+    hr.my-5
+    h2 Canales internacionales
+    .row.row-cols-1.row-cols-md-3.g-4
+      each channel in channels
+        .col
+          .card.h-100
+            .card-body
+              h5.card-title #{channel}
+              p.card-text Contenido mundial directo a tu televisor o dispositivo.
+    .text-center.mt-5
+      a.btn.btn-primary.btn-lg(href='/contacto') Ponte en contacto

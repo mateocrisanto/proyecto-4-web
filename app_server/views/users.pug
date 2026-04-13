@@ -1,0 +1,40 @@
+extends layout
+
+block content
+  h1= title
+  p.lead Revisa los clientes y sus servicios registrados.
+
+  if listadoUsuarios && listadoUsuarios.length
+    table.table.table-striped.align-middle
+      thead
+        tr
+          th(scope="col") #
+          th(scope="col") Nombre
+          th(scope="col") Identificación
+          th(scope="col") Servicios de Internet
+          th(scope="col") Telefonía
+          th(scope="col") Acciones
+      tbody
+        - let ord = 0
+        each usuario in listadoUsuarios
+          - ord++
+          tr
+            td #{ord}
+            td #{usuario.nombre} #{usuario.apellido}
+            td #{usuario.identificacion}
+            td
+              if usuario.services && usuario.services.internetPlans && usuario.services.internetPlans.length
+                = usuario.services.internetPlans.join(', ')
+              else
+                span.text-muted Sin plan
+            td
+              if usuario.services && usuario.services.phonePlans && usuario.services.phonePlans.length
+                = usuario.services.phonePlans.join(', ')
+              else
+                span.text-muted Sin servicio
+            td
+              a.btn.btn-sm.btn-outline-primary.me-1(href='/users/profile/'+usuario._id) Ver perfil
+              a.btn.btn-sm.btn-outline-warning.me-1(href='/users/edit/'+usuario._id) Editar
+              a.btn.btn-sm.btn-outline-danger(href='/users/delete/'+usuario._id) Eliminar
+  else
+    .alert.alert-info No hay clientes registrados todavía.

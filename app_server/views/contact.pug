@@ -1,0 +1,105 @@
+extends layout
+
+block content
+  .py-5
+    .container
+      .row
+        .col-lg-8.mx-auto
+          h1.mb-4 #{title}
+          p.lead.mb-4 Completa el formulario a continuación y nos pondremos en contacto pronto para asesorarte sobre los mejores planes para ti.
+          
+          .card.shadow-sm
+            .card-body
+              form#asesorias-form
+                .mb-3
+                  label.form-label(for='nombre') Nombre Completo
+                  input.form-control#nombre(type='text', placeholder='Tu nombre', required, name='nombre')
+                  .invalid-feedback Por favor ingresa tu nombre.
+                
+                .mb-3
+                  label.form-label(for='consulta') Consulta o Tema de Asesoría
+                  textarea.form-control#consulta(rows='5', placeholder='Cuéntanos tu consulta, necesidad o sobre qué servicio deseas más información...', required, name='consulta')
+                  .invalid-feedback Por favor ingresa tu consulta.
+                
+                .d-grid
+                  button.btn.btn-primary.btn-lg(type='submit', id='submit-btn') Enviar Solicitud de Asesoría
+
+          .alert.alert-success.mt-4(id='success-message', style='display: none;')
+            h5.alert-heading ¡Gracias!
+            p Tu solicitud de asesoría ha sido enviada exitosamente. Pronto nos pondremos en contacto.
+
+          .alert.alert-danger.mt-4(id='error-message', style='display: none;')
+            h5.alert-heading Error
+            p Ocurrió un error al enviar tu solicitud. Por favor intenta nuevamente.
+
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('asesorias-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const successMessage = document.getElementById('success-message');
+      const errorMessage = document.getElementById('error-message');
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Validar el formulario
+        if (!form.checkValidity()) {
+          e.stopPropagation();
+          form.classList.add('was-validated');
+          return;
+        }
+
+        // Obtener los valores
+        const nombre = document.getElementById('nombre').value;
+        const consulta = document.getElementById('consulta').value;
+
+        // Desabilitar el botón
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+        successMessage.style.display = 'none';
+        errorMessage.style.display = 'none';
+
+        try {
+          // Enviar a la API
+          const response = await fetch('/api/asesorias', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              nombre: nombre,
+              consulta: consulta
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Asesoría creada:', data);
+            
+            // Limpiar el formulario
+            form.reset();
+            form.classList.remove('was-validated');
+            
+            // Mostrar mensaje de éxito
+            successMessage.style.display = 'block';
+            
+            // Ocultar el formulario por un momento
+            form.style.display = 'none';
+            
+            // Volver a mostrar después de 3 segundos
+            setTimeout(() => {
+              form.style.display = 'block';
+              successMessage.style.display = 'none';
+            }, 3000);
+          } else {
+            throw new Error('Error en la respuesta del servidor');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          errorMessage.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar Solicitud de Asesoría';
+        }
+      });
+    });

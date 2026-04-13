@@ -1,0 +1,51 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    // bootstratp css
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css", rel="stylesheet")
+    // bootstrap js
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js")
+    // fontawesome
+    link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css')
+
+  body.app-shell
+    nav.navbar.navbar-expand-lg.fixed-top.navbar-dark.bg-dark
+      .container-fluid
+        a.navbar-brand.brand-name(href='/') New Tech
+        button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarCollapse' aria-controls='navbarCollapse' aria-expanded='false' aria-label='Toggle navigation')
+          span.navbar-toggler-icon
+        #navbarCollapse.collapse.navbar-collapse
+          ul.navbar-nav.me-auto.mb-2.mb-lg-0
+            li.nav-item
+              a.nav-link(href='/') Home
+            li.nav-item
+              a.nav-link(href='/servicios') Servicios
+            li.nav-item
+              a.nav-link(href='/products') Productos
+            li.nav-item
+              a.nav-link(href='/contacto') Asesorias
+            li.nav-item
+              a.nav-link(href='/cart', id='cart-link')
+                i.fas.fa-shopping-cart.me-1
+                | Carrito
+                if cart && cart.items && cart.items.length > 0
+                  span.badge.bg-primary.ms-1= cart.items.length
+    main.container.pt-5.mt-4.app-content
+      block content
+    footer.footer.fixed-bottom.py-3.bg-dark.text-white
+      .container.text-center
+        span NEW TECH
+
+    script.
+      // Actualizar enlaces del carrito con sessionId
+      document.addEventListener('DOMContentLoaded', function() {
+        const sessionId = localStorage.getItem('cartSessionId');
+        const cartLink = document.getElementById('cart-link');
+        if (cartLink && sessionId) {
+          cartLink.href = '/cart?sessionId=' + sessionId;
+        }
+      });

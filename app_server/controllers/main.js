@@ -1,0 +1,240 @@
+/**
+ * CONTROLADORES DEL SERVIDOR - PÁGINAS ISP
+ * ==========================================
+ * Estos controladores manejan las vistas (Pug) que los usuarios ven
+ * Hacen peticiones a la API REST para obtener datos
+ * 
+ * Estructura:
+ * - Cada controlador obtiene datos
+ * - Los renderiza con la vista cor respondiente
+ * - Los datos se muestran al cliente
+ */
+
+// Módulo para hacer peticiones HTTP a nuestra API REST
+const request = require('request');
+
+// ========== CONFIGURACIÓN DE AMBIENTES ==========
+// Define la URL del servidor según el ambiente (desarrollo o producción)
+let apiOptions = {
+  server: 'http://localhost:3000' // Ambiente de desarrollo (máquina local)
+};
+// Si es producción, cambiar a la URL del servidor en Heroku
+if (process.env.NODE_ENV === 'production') {
+  apiOptions.server = 'https://dw3-202520.herokuapp.com';
+}
+
+// ========== DATOS DISPONIBLES PARA LOS SERVICIOS ==========
+// Arrays con todas las opciones de planes y servicios que ofrecemos
+const availableInternetPlans = [
+  '10 Mbps', '20 Mbps', '30 Mbps', '50 Mbps', '80 Mbps', '100 Mbps',
+  '200 Mbps', '300 Mbps', '500 Mbps', '800 Mbps', '1 Gbps', '2 Gbps'
+];
+const availablePhonePlans = [
+  'Telefonía local', 'Telefonía nacional', 'Telefonía internacional',
+  'SMS ilimitados', 'Roaming internacional'
+];
+const availableMobilePlans = [
+  'Plan celular Básico', 'Plan celular Estándar', 'Plan celular Premium'
+];
+const availableChannels = [
+  'CNN', 'BBC', 'ESPN', 'Telemundo', 'Discovery', 'EuroNews', 'Fox Sports'
+];
+
+
+// ========== FUNCIÓN AUXILIAR: RENDERIZAR LA PÁGINA DE INICIO ==========
+// Esta función regresa la vista con los datos de la página principal
+const homepageRender = (req, res, products = [], services = {}) => {
+  res.render('index', {
+    title: 'New Tech',
+    subtitle: 'Internet de calidad con productos de calidad. Prueba tu velocidad de internet y mira los beneficios que te ofrecemos.',
+    featuredProducts: products,
+    mainInternetPlans: ['50 Mbps', '100 Mbps', '200 Mbps', '500 Mbps'],
+    mainPhonePlans: ['Telefonía local', 'Telefonía nacional'],
+    mainMobilePlans: ['Plan celular Estándar', 'Plan celular Premium'],
+    mainChannels: ['CNN', 'ESPN', 'Discovery']
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DE INICIO ==========
+// GET /
+// Landing page con medidor de velocidad y productos/servicios destacados
+const homepageController = (req, res, next) => {
+  const path = '/api/products';
+  const requestOptions = {
+    url: apiOptions.server + path,
+    method: 'GET',
+    json: {}
+  };
+
+  request(requestOptions, (err, response, body) => {
+    if (err) {
+      console.log('Error al obtener los productos:', err);
+      homepageRender(req, res, [], {});
+    } else if (response.statusCode === 200) {
+      // Obtener solo los primeros 3 productos para la homepage
+      const featuredProducts = body.slice(0, 3);
+      homepageRender(req, res, featuredProducts, {});
+    } else {
+      console.log('Error al obtener los productos:', response.statusCode);
+      homepageRender(req, res, [], {});
+    }
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DE SERVICIOS ==========
+// GET /servicios
+// Muestra todos los servicios disponibles: planes de internet, telefonía, celular, canales
+const servicesController = (req, res, next) => {
+  res.render('services', {
+    title: 'Nuestros Servicios',
+    internetPlans: availableInternetPlans,  // Mostrar todos los planes de internet
+    phonePlans: availablePhonePlans,        // Mostrar servicios telefónicos
+    mobilePlans: availableMobilePlans,      // Mostrar planes celulares
+    channels: availableChannels             // Mostrar canales internacionales
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DE INFORMACIÓN ==========
+// GET /informacion
+// Muestra información sobre la empresa: misión, visión, valores
+const informationController = (req, res, next) => {
+  res.render('information', {
+    title: 'Información',
+    company: 'Proveedor de Internet',
+    mission: 'Conectamos a tu hogar y a tu empresa con servicios rápidos y confiables.',
+    vision: 'Ser la mejor opción local en paquetes de internet, telefonía y entretenimiento.',
+    values: ['Calidad', 'Atención al cliente', 'Flexibilidad', 'Servicio confiable']
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DE CONTACTO ==========
+// GET /contacto
+// Muestra información de contacto y un formulario para enviar mensajes
+const contactController = (req, res, next) => {
+  res.render('contact', {
+    title: 'Contacto',
+    phone: '+593 99 123 4567',
+    email: 'hola@proveedorinternet.com',
+    address: 'Av. Principal 123, Ciudad XYZ'
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DE PERFIL ==========
+// GET /perfil
+// Muestra los datos del perfil del cliente (después de loguearse)
+const perfilController = (req, res, next) => {
+  res.render('perfil', {
+    title: 'Perfil',
+    message: 'Tu perfil de cliente con toda la información de tus planes y servicios.'
+  });
+};
+
+// ========== FUNCIÓN AUXILIAR: RENDERIZAR LISTA DE CLIENTES ==========
+// Renderiza la vista de la lista de clientes
+// ========== CONTROLADOR: PÁGINA DE PRODUCTOS ==========
+// GET /products
+// Muestra todos los productos disponibles
+const productsController = (req, res, next) => {
+  const path = '/api/products';
+  const requestOptions = {
+    url: apiOptions.server + path,
+    method: 'GET',
+    json: {}
+  };
+
+  request(requestOptions, (err, response, body) => {
+    if (err) {
+      console.log('Error al obtener los productos:', err);
+      res.render('products', { title: 'Productos', products: [] });
+    } else if (response.statusCode === 200) {
+      res.render('products', { title: 'Productos', products: body });
+    } else {
+      console.log('Error al obtener los productos:', response.statusCode);
+      res.render('error', {
+        message: 'Error al obtener los productos',
+        error: { status: response.statusCode }
+      });
+    }
+  });
+};
+
+// ========== CONTROLADOR: PÁGINA DEL CARRITO ==========
+// GET /cart
+// Muestra el carrito de compras
+const cartController = (req, res, next) => {
+  // Obtener sessionId de query params o usar uno por defecto
+  const sessionId = req.query.sessionId || 'default-session';
+  const path = `/api/cart/${sessionId}`;
+  const requestOptions = {
+    url: apiOptions.server + path,
+    method: 'GET',
+    json: {}
+  };
+
+  request(requestOptions, (err, response, body) => {
+    if (err) {
+      console.log('Error al obtener el carrito:', err);
+      res.render('cart', { title: 'Carrito de Compras', cart: { items: [], total: 0 }, sessionId: sessionId });
+    } else if (response.statusCode === 200) {
+      res.render('cart', { title: 'Carrito de Compras', cart: body, sessionId: sessionId });
+    } else {
+      console.log('Error al obtener el carrito:', response.statusCode);
+      res.render('cart', { title: 'Carrito de Compras', cart: { items: [], total: 0 }, sessionId: sessionId });
+    }
+  });
+};
+
+// ========== CONTROLADOR: EJECUTAR SPEEDTEST CLI ==========
+// GET /speedtest
+const speedtestController = (req, res, next) => {
+  const { execFile } = require('child_process');
+  const candidates = process.platform === 'win32' ? ['speedtest.exe', 'speedtest'] : ['speedtest'];
+  const args = ['--format=json'];
+
+  const tryCommand = (index) => {
+    if (index >= candidates.length) {
+      res.status(500).json({ message: 'speedtest CLI no está disponible en el servidor.' });
+      return;
+    }
+
+    const command = candidates[index];
+    execFile(command, args, { timeout: 120000 }, (error, stdout, stderr) => {
+      if (error) {
+        if (error.code === 'ENOENT') {
+          return tryCommand(index + 1);
+        }
+        console.error('Error ejecutando speedtest CLI:', command, error, stderr);
+        res.status(500).json({ message: 'Error al ejecutar speedtest en el servidor.' });
+        return;
+      }
+
+      try {
+        const result = JSON.parse(stdout);
+        const download = result.download && result.download.bandwidth ? (result.download.bandwidth * 8 / 1e6).toFixed(1) : null;
+        const upload = result.upload && result.upload.bandwidth ? (result.upload.bandwidth * 8 / 1e6).toFixed(1) : null;
+        const ping = result.ping && result.ping.latency ? result.ping.latency.toFixed(0) : null;
+
+        res.status(200).json({
+          download: download || '0.0',
+          upload: upload || '0.0',
+          ping: ping || '0',
+          raw: result
+        });
+      } catch (parseError) {
+        console.error('Error parseando JSON del speedtest CLI:', parseError, stdout);
+        res.status(500).json({ message: 'Respuesta inválida de speedtest CLI.' });
+      }
+    });
+  };
+
+  tryCommand(0);
+};
+
+module.exports = {
+  homepageController,       // GET / - Página de inicio
+  productsController,       // GET /products - Página de productos
+  speedtestController,      // GET /speedtest - Ejecuta CLI de Ookla
+  cartController,           // GET /cart - Página del carrito
+  servicesController,       // GET /servicios - Página de servicios
+  contactController         // GET /contacto - Página de contacto/asesorías
+};

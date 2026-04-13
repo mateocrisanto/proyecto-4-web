@@ -1,0 +1,55 @@
+extends layout
+
+block content
+  // Inicia el contenido de la página
+  header
+      // Fixed navbar
+      nav.navbar.navbar-expand-md.fixed-top.bg-dark.navbar-dark.text-white
+        .container-fluid
+          a.navbar-brand(href='/') Proyecto MEAN
+          button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarCollapse' aria-controls='navbarCollapse' aria-expanded='false' aria-label='Toggle navigation')
+            span.navbar-toggler-icon
+          #navbarCollapse.collapse.navbar-collapse
+            // Nueva versión de las opciones OJO: me-auto mb-2 mb-md-0  en la lista ul
+            ul.nav.col-12.col-lg-auto.my-2.justify-content-center.my-md-0.text-small
+              li
+                a.nav-link.text-white(href='/')
+                  svg.bi.d-block.mx-auto.mb-1(width='24' height='24')
+                    use(xlink:href='#home')
+                  |  Home
+              li.nav-item.dropdown
+                a#usuarios.nav-link.text-white.dropdown-toggle(href='/users' data-bs-toggle='dropdown' aria-expanded='false')
+                  svg.bi.d-block.mx-auto.mb-1(width='24' height='24')
+                    use(xlink:href='#people-circle')
+                  |   Users
+                ul.dropdown-menu(aria-labelledby='usuarios')
+                  li
+                    a.dropdown-item(href='/users/add') Create
+                  li
+                    a.dropdown-item(href='#') Read One
+                  li
+                    a.dropdown-item(href='/users/list') Read All
+                  li
+                    a.dropdown-item(href='#') Update
+                  li
+                    a.dropdown-item(href='#') Delete
+              li
+                a.nav-link.text-white(href='/about')
+                  svg.bi.d-block.mx-auto.mb-1(width='24' height='24')
+                    use(xlink:href='#grid')
+                  |  About
+                  
+  main.flex-shrink-0
+    .container
+      h1.mt-5 Se presentó un error  #{mensajeAPI}
+      hr
+      h1= message 
+      h2= error.status
+      pre #{error.stack}
+
+  // Inicia el contenido del footer
+  footer.footer.mt-auto.py-3.bg-light.fixed-bottom
+    .container
+      span.text-muted El código del error es:  #{error.status} 
+      br
+      span.text-muted El mensaje de error es:  #{message}

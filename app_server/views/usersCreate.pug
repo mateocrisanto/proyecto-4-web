@@ -1,0 +1,62 @@
+extends layout
+
+block content
+  main.container.py-5
+    h1.mb-4 #{title}
+    p.lead #{message}
+    .card.shadow-sm
+      .card-body
+        form(action=action || '/users/add', method='post', role='form')
+          .row.g-3
+            .col-md-6
+              label.form-label(for='nombre') Nombre
+              input.form-control#nombre(type='text', name='nombre', required, placeholder='Nombre completo', value=(user && user.nombre) ? user.nombre : '')
+            .col-md-6
+              label.form-label(for='apellido') Apellido
+              input.form-control#apellido(type='text', name='apellido', required, placeholder='Apellido completo', value=(user && user.apellido) ? user.apellido : '')
+            .col-md-6
+              label.form-label(for='identificacion') Identificación
+              input.form-control#identificacion(type='number', name='identificacion', required, placeholder='Número de identificación', value=(user && user.identificacion) ? user.identificacion : '')
+            .col-md-6
+              label.form-label(for='telefono') Teléfono
+              input.form-control#telefono(type='tel', name='telefono', placeholder='Teléfono de contacto', value=(user && user.telefono) ? user.telefono : '')
+            .col-md-12
+              label.form-label(for='email') Correo electrónico
+              input.form-control#email(type='email', name='email', placeholder='correo@ejemplo.com', value=(user && user.email) ? user.email : '')
+            .col-md-12
+              label.form-label(for='direccion') Dirección
+              input.form-control#direccion(type='text', name='direccion', placeholder='Dirección de instalación', value=(user && user.direccion) ? user.direccion : '')
+            .col-md-12
+              label.form-label Planes de Internet
+              .row.row-cols-1.row-cols-md-2.g-2
+                each plan in ['10 Mbps','20 Mbps','30 Mbps','50 Mbps','80 Mbps','100 Mbps','200 Mbps','300 Mbps','500 Mbps','800 Mbps','1 Gbps','2 Gbps']
+                  .col
+                    .form-check
+                      input.form-check-input(type='checkbox', id=plan.replace(' ','_'), name='internetPlans', value=plan, checked=(user && user.services && user.services.internetPlans && user.services.internetPlans.includes(plan)))
+                      label.form-check-label(for=plan.replace(' ','_'))= plan
+            .col-md-12
+              label.form-label Servicios de telefonía
+              .row.row-cols-1.row-cols-md-2.g-2
+                each plan in ['Telefonía local','Telefonía nacional','Telefonía internacional','SMS ilimitados','Roaming internacional']
+                  .col
+                    .form-check
+                      input.form-check-input(type='checkbox', id=plan.replace(/\s+/g, '_'), name='phonePlans', value=plan, checked=(user && user.services && user.services.phonePlans && user.services.phonePlans.includes(plan)))
+                      label.form-check-label(for=plan.replace(/\s+/g, '_'))= plan
+            .col-md-12
+              label.form-label Plan celular
+              .row.row-cols-1.row-cols-md-2.g-2
+                each plan in ['Plan celular Básico','Plan celular Estándar','Plan celular Premium']
+                  .col
+                    .form-check
+                      input.form-check-input(type='checkbox', id=plan.replace(/\s+/g, '_'), name='mobilePlans', value=plan, checked=(user && user.services && user.services.mobilePlans && user.services.mobilePlans.includes(plan)))
+                      label.form-check-label(for=plan.replace(/\s+/g, '_'))= plan
+            .col-md-12
+              label.form-label Canales internacionales
+              .row.row-cols-1.row-cols-md-2.g-2
+                each channel in ['CNN','BBC','ESPN','Telemundo','Discovery','EuroNews','Fox Sports']
+                  .col
+                    .form-check
+                      input.form-check-input(type='checkbox', id=channel.replace(/\s+/g, '_'), name='internationalChannels', value=channel, checked=(user && user.services && user.services.internationalChannels && user.services.internationalChannels.includes(channel)))
+                      label.form-check-label(for=channel.replace(/\s+/g, '_'))= channel
+            .col-12.text-center
+              button.btn.btn-primary(type='submit') #{submitText || 'Enviar registro'}

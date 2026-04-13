@@ -1,0 +1,292 @@
+/* ========== IMPORTAR FUENTES PERSONALIZADAS ========== */
+@font-face {
+    font-family: 'Platinum Sign';
+    src: url('/fonts/Platinum Sign.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'TT Octosquares';
+    src: url('/fonts/TT Octosquares Trial Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'TT Octosquares Light';
+    src: url('/fonts/TT Octosquares Trial Light.ttf') format('truetype');
+}
+
+/* ========== ESTILOS GENERALES ========== */
+body {
+    padding: 50px;
+    font: 14px "TT Octosquares", Helvetica, Arial, sans-serif;
+}
+
+.app-shell {
+    min-height: 100vh;
+    padding-bottom: 72px;
+}
+
+.app-content {
+    padding-bottom: 1rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'TT Octosquares', Helvetica, Arial, sans-serif;
+    font-weight: bold;
+}
+
+a {
+    color: #00B7FF;
+}
+
+.text-justify {
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+.bd-placeholder-img {
+    font-size: 1.125rem;
+    text-anchor: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+@media (min-width: 768px) {
+    .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+    }
+}
+
+.form-control-dark {
+    color: #fff;
+    background-color: var(--bs-dark);
+    border-color: var(--bs-gray);
+}
+
+.form-control-dark:focus {
+    color: #fff;
+    background-color: var(--bs-dark);
+    border-color: #fff;
+    box-shadow: 0 0 0 .25rem rgba(255, 255, 255, .25);
+}
+
+.bi {
+    vertical-align: -.125em;
+    fill: currentColor;
+}
+
+.text-small {
+    font-size: 85%;
+}
+
+.dropdown-toggle {
+    outline: 0;
+}
+
+/* ========== NAVBAR CON BORDE RGB ANIMADO ========== */
+.navbar {
+    position: relative;
+}
+
+.navbar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        #FF0000, 
+        #00FF00, 
+        #0000FF,
+        #FF0000
+    );
+    background-size: 300% 100%;
+    animation: rgb-animation 3s ease infinite;
+}
+
+@keyframes rgb-animation {
+    0% {
+        background-position: 0% center;
+    }
+    50% {
+        background-position: 100% center;
+    }
+    100% {
+        background-position: 0% center;
+    }
+}
+
+/* ========== BRAND NAME ========== */
+.brand-name {
+    font-family: 'Platinum Sign', serif;
+    font-size: 32px;
+    font-weight: normal;
+    letter-spacing: 2px;
+    color: #fff !important;
+    padding-bottom: 25px;
+}
+
+.brand-name:hover {
+    color: #fff !important;
+}
+
+/* ========== HERO SECTION - FULL WIDTH ========== */
+.hero-section {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    margin-top: calc(-50px - 1.5rem - 3rem);
+    padding: 0 !important; /* Quitamos el padding para que la imagen llene todo */
+    height: 400px; /* Altura fija del cuadro celeste */
+}
+
+/* ========== HERO SECTION TYPOGRAPHY ========== */
+.hero-title {
+    font-family: 'Platinum Sign', serif;
+    font-size: 48px;
+    font-weight: normal;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.hero-subtitle {
+    font-family: 'TT Octosquares Light', Helvetica, Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 1.6;
+}
+
+/* ========== HERO IMAGE ========== */
+.hero-section .row {
+    height: 20%; /* Ocupa toda la altura del hero-section */
+    position: relative;
+    right: 200px;
+}
+
+.hero-section .col-lg-4 {
+    flex: 0 0 45%;
+    max-width: 45%;
+    padding-top: 100px !important; /* Solo agregamos padding superior al texto */
+    padding-bottom: 0px !important; /* Y padding inferior */
+    padding-left: 0px !important; /* Padding izquierdo para el texto */
+    padding-right: 0px !important; /* Padding derecho para el texto */
+    z-index: 2; /* Asegura que el texto esté encima de la imagen */
+    position: relative;
+}
+
+.hero-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%; /* Rellena toda la altura del hero-section (500px) */
+    width: 55%; /* Ajustamos ancho de imagen tras ampliar el texto */
+    object-fit: cover;
+    display: block;
+}
+
+/* ========== PRODUCTO CARDS ========== */
+.product-card {
+    min-height: 420px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+}
+
+.product-card .card-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+}
+
+.card-img-top {
+    min-height: 200px;
+    object-fit: cover;
+}
+
+/* ========== MEDIDOR DE VELOCIDAD CON BARRAS DE PROGRESO ========== */
+.speed-test-card {
+    min-height: auto;
+    border: 5px solid rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.30);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.speed-test-card.glow-cyan {
+    border-color: rgba(56, 189, 248, 0.55);
+    box-shadow: 0 0 32px rgba(56, 189, 248, 0.35);
+}
+
+.speed-test-card.glow-green {
+    border-color: rgba(134, 239, 172, 0.75);
+    box-shadow: 0 0 32px rgba(134, 239, 172, 0.35);
+}
+
+.speed-result-item {
+    margin-bottom: 25px;
+}
+
+.speed-result-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.speed-result-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+}
+
+.speed-result-unit {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* Barra de progreso - Celeste */
+.progress-bar-azure {
+    background: linear-gradient(90deg, #00B4D8 0%, #90E0EF 100%);
+    box-shadow: 0 2px 5px rgba(0, 180, 216, 0.3);
+}
+
+/* Barra de progreso - Gris */
+.progress-bar-gray {
+    background: linear-gradient(90deg, #9CA3AF 0%, #D1D5DB 100%);
+    box-shadow: 0 2px 5px rgba(156, 163, 175, 0.3);
+}
+
+/* Barra de progreso - Blanco con borde */
+.progress-bar-white {
+    background: linear-gradient(90deg, #F0F0F0 0%, #FFFFFF 100%);
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.progress.speed-progress {
+    height: 28px;
+    background-color: #F3F4F6;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress.speed-progress .progress-bar {
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+}

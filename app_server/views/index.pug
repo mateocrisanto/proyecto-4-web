@@ -1,0 +1,355 @@
+extends layout
+
+block content
+  // Hero Section con Medidor de Velocidad
+  .hero-section.bg-primary.text-white
+    .container
+      .row.align-items-center
+        .col-lg-4
+          h1.hero-title.fw-bold #{title}
+          p.hero-subtitle.mb-4 #{subtitle}
+    img.hero-image(src='/images/gamer.png', alt='Medidor de velocidad', onerror="this.src='/images/placeholder.png'")
+  
+  // Sección Medidor de Velocidad
+  .py-5.bg-light
+    .container
+      .row
+        .col-lg-8.offset-lg-2
+          .speed-test-card#speed-test-card.bg-white.text-dark.p-5.rounded.shadow
+            h3.mb-4.text-center Medidor de Velocidad de Internet
+            
+            // Download Speed
+            .speed-result-item
+              .speed-result-label
+                span Download
+                span.speed-result-value#download-speed --
+                span.speed-result-unit Mbps
+              .progress.speed-progress
+                .progress-bar.progress-bar-azure#download-progress-bar(role='progressbar', style='width: 0%', aria-valuenow='0', aria-valuemin='0', aria-valuemax='100')
+            
+            // Upload Speed
+            .speed-result-item
+              .speed-result-label
+                span Upload
+                span.speed-result-value#upload-speed --
+                span.speed-result-unit Mbps
+              .progress.speed-progress
+                .progress-bar.progress-bar-gray#upload-progress-bar(role='progressbar', style='width: 0%', aria-valuenow='0', aria-valuemin='0', aria-valuemax='100')
+            
+            // Ping
+            .speed-result-item.mb-0
+              .speed-result-label
+                span Ping
+                span.speed-result-value#ping --
+                span.speed-result-unit ms
+              .progress.speed-progress
+                .progress-bar.progress-bar-white#ping-progress-bar(role='progressbar', style='width: 0%', aria-valuenow='0', aria-valuemin='0', aria-valuemax='100')
+            
+            .text-center.mt-4
+              button.btn.btn-primary.btn-lg#start-speed-test Iniciar Prueba de Velocidad
+
+  // Sección de Servicios Principales
+  .services-section.py-5.bg-light
+    .container
+      .row
+        .col-12.text-center.mb-5
+          h2.display-5 Nuestros Servicios Principales
+          p.lead Elige el plan que mejor se adapte a tus necesidades
+
+      .row.g-4
+        .col-lg-3.col-md-6
+          .card.h-100.shadow-sm
+            .card-body.text-center
+              h5.card-title.mb-3 Internet
+              each plan in mainInternetPlans
+                .mb-2
+                  span.badge.bg-primary #{plan}
+              a.btn.btn-outline-primary.btn-sm.mt-3(href='/servicios') Ver todos los planes
+
+        .col-lg-3.col-md-6
+          .card.h-100.shadow-sm
+            .card-body.text-center
+              h5.card-title.mb-3 Telefonía
+              each plan in mainPhonePlans
+                .mb-2
+                  span.badge.bg-success #{plan}
+              a.btn.btn-outline-success.btn-sm.mt-3(href='/servicios') Ver más
+
+        .col-lg-3.col-md-6
+          .card.h-100.shadow-sm
+            .card-body.text-center
+              h5.card-title.mb-3 Planes Celulares
+              each plan in mainMobilePlans
+                .mb-2
+                  span.badge.bg-info #{plan}
+              a.btn.btn-outline-info.btn-sm.mt-3(href='/servicios') Ver detalles
+
+        .col-lg-3.col-md-6
+          .card.h-100.shadow-sm
+            .card-body.text-center
+              h5.card-title.mb-3 TV
+              each channel in mainChannels
+                .mb-2
+                  span.badge.bg-warning #{channel}
+              a.btn.btn-outline-warning.btn-sm.mt-3(href='/servicios') Ver canales
+
+  // Sección de Productos Destacados
+  if featuredProducts && featuredProducts.length > 0
+    .products-section.py-5
+      .container
+        .row
+          .col-12.text-center.mb-5
+            h2.display-5 Productos Destacados
+            p.lead Explora nuestra selección de productos tecnológicos
+
+        .row.g-4
+          each product in featuredProducts
+            .col-lg-4.col-md-6
+              .card.h-100.shadow-sm.product-card
+                img.card-img-top(src=product.imagen, alt=product.nombre, onerror="this.src='/images/placeholder.png'")
+                .card-body.d-flex.flex-column
+                  h5.card-title= product.nombre
+                  p.card-text= product.descripcion
+                  .mt-auto
+                    .d-flex.justify-content-between.align-items-center.mb-3
+                      .price
+                        strong $#{(product.precio).toFixed(2)}
+                      small.text-muted Stock: #{product.stock}
+                    button.btn.btn-primary.w-100.add-to-cart-btn(
+                      data-product-id=product._id,
+                      data-product-name=product.nombre,
+                      data-product-price=product.precio,
+                      data-product-image=product.imagen
+                    ) Añadir al Carrito
+
+        .row.mt-4
+          .col-12.text-center
+            a.btn.btn-outline-primary.btn-lg(href='/products') Ver Todos los Productos
+
+    // Modal de confirmación
+    .modal.fade#add-to-cart-modal(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title Producto añadido al carrito
+            button.btn-close(type='button', data-bs-dismiss='modal')
+          .modal-body
+            p El producto ha sido añadido a tu carrito de compras.
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Continuar comprando
+            a.btn.btn-primary#modal-cart-link(href='/cart') Ver carrito
+
+    // Modal de sugerencia de plan tras speedtest
+    .modal.fade#speed-suggestion-modal(tabindex='-1')
+      .modal-dialog.modal-dialog-centered
+        .modal-content
+          .modal-header
+            h5.modal-title Sugerencia de plan de Internet
+            button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Cerrar')
+          .modal-body
+            p#suggestion-text.mb-3
+            .suggestion-box
+              h6.text-primary Plan recomendado
+              p.mb-2#suggested-plan
+              h6.text-success Producto recomendado
+              p.mb-2#suggested-product
+              h6.text-warning Servicio adicional recomendado
+              p#suggested-service
+          .modal-footer
+            a.btn.btn-primary#suggestion-contact(href='/contacto') Contactar asesor
+            button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Cerrar
+
+  // Call to Action
+  .cta-section.bg-light.py-5
+    .container.text-center
+      h3.mb-3 ¿Necesitas asesoramiento?
+      p.lead Te ayudaremos a elegir el plan perfecto para ti
+      a.btn.btn-success.btn-lg(href='/contacto') Solicitar Asesoría
+      a.btn.btn-outline-success.btn-lg.ms-3(href='/cart') Ver Carrito
+
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const startButton = document.getElementById('start-speed-test');
+      const downloadSpeed = document.getElementById('download-speed');
+      const uploadSpeed = document.getElementById('upload-speed');
+      const ping = document.getElementById('ping');
+      const downloadBar = document.getElementById('download-progress-bar');
+      const uploadBar = document.getElementById('upload-progress-bar');
+      const pingBar = document.getElementById('ping-progress-bar');
+
+      const speedTestCard = document.getElementById('speed-test-card');
+      const suggestionModal = new bootstrap.Modal(document.getElementById('speed-suggestion-modal'));
+      const suggestionText = document.getElementById('suggestion-text');
+      const suggestedPlan = document.getElementById('suggested-plan');
+      const suggestedProduct = document.getElementById('suggested-product');
+      const suggestedService = document.getElementById('suggested-service');
+      const additionalContact = document.getElementById('suggestion-contact');
+
+      const mainInternetPlans = !{JSON.stringify(mainInternetPlans || [])};
+      const mainPhonePlans = !{JSON.stringify(mainPhonePlans || [])};
+      const mainMobilePlans = !{JSON.stringify(mainMobilePlans || [])};
+      const mainChannels = !{JSON.stringify(mainChannels || [])};
+      const featuredProductsData = !{JSON.stringify(featuredProducts || [])};
+
+      function parseSpeedPlan(plan) {
+        if (!plan) return 0;
+        const lower = plan.toLowerCase();
+        if (lower.includes('gbps')) {
+          return parseFloat(lower) * 1000;
+        }
+        return parseFloat(plan) || 0;
+      }
+
+      function getRecommendedInternet(measured) {
+        const sortedPlans = mainInternetPlans.slice().sort((a, b) => parseSpeedPlan(a) - parseSpeedPlan(b));
+        const higherPlan = sortedPlans.find(plan => parseSpeedPlan(plan) > measured);
+        return higherPlan || sortedPlans[sortedPlans.length - 1] || 'Contacta para más opciones';
+      }
+
+      function getAdditionalService() {
+        if (mainPhonePlans && mainPhonePlans.length > 0) {
+          return `Telefonía: ${mainPhonePlans[0]}`;
+        }
+        if (mainMobilePlans && mainMobilePlans.length > 0) {
+          return `Planes celulares: ${mainMobilePlans[0]}`;
+        }
+        if (mainChannels && mainChannels.length > 0) {
+          return `TV: ${mainChannels[0]}`;
+        }
+        return 'Consulta nuestros servicios disponibles';
+      }
+
+      function getRecommendedProduct() {
+        if (featuredProductsData && featuredProductsData.length > 0) {
+          const product = featuredProductsData[0];
+          return `${product.nombre} - ${product.descripcion}`;
+        }
+        return 'Revisa nuestros productos destacados en la sección de productos';
+      }
+
+      function showSpeedSuggestion(measuredDownload) {
+        const plan = getRecommendedInternet(measuredDownload);
+        suggestionText.textContent = `Basado en tu velocidad medida de ${measuredDownload.toFixed(1)} Mbps, te recomendamos un plan superior.`;
+        suggestedPlan.textContent = plan;
+        suggestedProduct.textContent = getRecommendedProduct();
+        suggestedService.textContent = getAdditionalService();
+        additionalContact.href = '/contacto';
+        suggestionModal.show();
+      }
+
+      startButton.addEventListener('click', async function() {
+        speedTestCard.classList.add('glow-green');
+        speedTestCard.classList.remove('glow-cyan');
+        startButton.disabled = true;
+        startButton.textContent = 'Midiendo...';
+        
+        // Resetear valores
+        downloadSpeed.textContent = '--';
+        uploadSpeed.textContent = '--';
+        ping.textContent = '--';
+        downloadBar.style.width = '0%';
+        uploadBar.style.width = '0%';
+        pingBar.style.width = '0%';
+        
+        // Simulación de progreso
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += Math.random() * 30;
+          if (progress > 90) progress = 90;
+          downloadBar.style.width = progress + '%';
+          uploadBar.style.width = (progress * 0.8) + '%';
+          pingBar.style.width = (Math.min(progress * 0.6, 100)) + '%';
+        }, 200);
+
+        fetch('/speedtest')
+          .then(response => response.json())
+          .then(data => {
+            clearInterval(progressInterval);
+            
+            if (data.download && data.upload && data.ping) {
+              downloadSpeed.textContent = data.download;
+              uploadSpeed.textContent = data.upload;
+              ping.textContent = data.ping;
+              
+              // Animar barras a su valor final
+              const maxSpeed = Math.max(parseFloat(data.download), parseFloat(data.upload));
+              const downloadPercent = (parseFloat(data.download) / maxSpeed) * 100;
+              const uploadPercent = (parseFloat(data.upload) / maxSpeed) * 100;
+              const pingPercent = Math.min((150 - parseFloat(data.ping)) / 150 * 100, 100); // Menos ping = más barra
+              
+              downloadBar.style.width = downloadPercent + '%';
+              uploadBar.style.width = uploadPercent + '%';
+              pingBar.style.width = pingPercent + '%';
+              showSpeedSuggestion(parseFloat(data.download));
+            } else {
+              throw new Error(data.message || 'Error en speedtest');
+            }
+          })
+          .catch(error => {
+            console.error('Error al ejecutar speedtest:', error);
+            clearInterval(progressInterval);
+            downloadSpeed.textContent = 'Error';
+            uploadSpeed.textContent = 'Error';
+            ping.textContent = 'Error';
+            downloadBar.style.width = '0%';
+            uploadBar.style.width = '0%';
+            pingBar.style.width = '0%';
+          })
+          .finally(() => {
+            startButton.disabled = false;
+            startButton.textContent = 'Iniciar Prueba de Velocidad';
+            speedTestCard.classList.remove('glow-green');
+            speedTestCard.classList.add('glow-cyan');
+          });
+      });
+
+      // Código para añadir al carrito (si hay productos destacados)
+      const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+      if (addToCartButtons.length > 0) {
+        const modal = new bootstrap.Modal(document.getElementById('add-to-cart-modal'));
+        const modalCartLink = document.getElementById('modal-cart-link');
+
+        function getSessionId() {
+          let sessionId = localStorage.getItem('cartSessionId');
+          if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('cartSessionId', sessionId);
+          }
+          return sessionId;
+        }
+
+        addToCartButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const sessionId = getSessionId();
+
+            fetch('/api/cart/add', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                productId: productId,
+                cantidad: 1
+              })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data._id) {
+                if (modalCartLink) {
+                  modalCartLink.href = '/cart?sessionId=' + sessionId;
+                }
+                modal.show();
+              } else {
+                alert('Error al añadir al carrito: ' + (data.message || 'Error desconocido'));
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('Error de conexión');
+            });
+          });
+        });
+      }
+    });
