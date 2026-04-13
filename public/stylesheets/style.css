@@ -204,9 +204,74 @@ a {
     min-height: 220px;
 }
 
+.products-carousel {
+    padding: 0 4rem 3.5rem;
+}
+
+.product-carousel-card {
+    min-height: 360px;
+    border: 0;
+    overflow: hidden;
+}
+
+.product-carousel-image {
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    object-fit: cover;
+}
+
+.product-carousel-meta {
+    gap: 1rem;
+}
+
+.products-carousel .carousel-indicators {
+    bottom: -2.5rem;
+}
+
+.products-carousel .carousel-indicators button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #6c757d;
+}
+
+.products-carousel .carousel-control-prev,
+.products-carousel .carousel-control-next {
+    width: 3rem;
+}
+
+.products-carousel .carousel-control-prev-icon,
+.products-carousel .carousel-control-next-icon {
+    background-color: rgba(13, 110, 253, 0.85);
+    border-radius: 50%;
+    background-size: 55% 55%;
+    width: 2.8rem;
+    height: 2.8rem;
+}
+
 .card-img-top {
     min-height: 200px;
     object-fit: cover;
+}
+
+@media (max-width: 767.98px) {
+    .products-carousel {
+        padding: 0 0 3rem;
+    }
+
+    .product-carousel-card {
+        min-height: auto;
+    }
+
+    .product-carousel-image {
+        min-height: 220px;
+    }
+
+    .products-carousel .carousel-control-prev,
+    .products-carousel .carousel-control-next {
+        width: 2.5rem;
+    }
 }
 
 /* ========== MEDIDOR DE VELOCIDAD CON BARRAS DE PROGRESO ========== */

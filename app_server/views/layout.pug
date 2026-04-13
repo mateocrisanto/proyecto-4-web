@@ -39,13 +39,3 @@ html
     footer.footer.fixed-bottom.py-3.bg-dark.text-white
       .container.text-center
         span NEW TECH
-
-    script.
-      // Actualizar enlaces del carrito con sessionId
-      document.addEventListener('DOMContentLoaded', function() {
-        const sessionId = localStorage.getItem('cartSessionId');
-        const cartLink = document.getElementById('cart-link');
-        if (cartLink && sessionId) {
-          cartLink.href = '/cart?sessionId=' + sessionId;
-        }
-      });

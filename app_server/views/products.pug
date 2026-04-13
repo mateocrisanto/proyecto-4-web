@@ -7,25 +7,32 @@ block content
         h1.display-4.text-center.mb-5 #{title}
         p.lead.text-center.mb-5 Explora nuestros productos tecnológicos de alta calidad
 
-    .row.g-4
-      each product in products
-        .col-lg-4.col-md-6
-          .card.h-100.shadow-sm.product-card
-            img.card-img-top(src=product.imagen, alt=product.nombre, onerror="this.src='/images/placeholder.png'")
-            .card-body.d-flex.flex-column
-              h5.card-title= product.nombre
-              p.card-text= product.descripcion
-              .mt-auto
-                .d-flex.justify-content-between.align-items-center.mb-3
-                  .price
-                      strong $#{(product.precio).toFixed(2)}
-                  small.text-muted Stock: #{product.stock}
-                button.btn.btn-primary.w-100.add-to-cart-btn(
-                  data-product-id=product._id,
-                  data-product-name=product.nombre,
-                  data-product-price=product.precio,
-                  data-product-image=product.imagen
-                ) Añadir al Carrito
+    if products && products.length > 0
+      .row.g-4
+        each product in products
+          .col-lg-4.col-md-6
+            .card.h-100.shadow-sm.product-card
+              img.card-img-top(src=(product.imagen || '/images/placeholder.png'), alt=(product.nombre || 'Producto'), onerror="this.src='/images/placeholder.png'")
+              .card-body.d-flex.flex-column
+                h5.card-title= product.nombre || 'Producto sin nombre'
+                p.card-text= product.descripcion || 'Sin descripción disponible.'
+                .mt-auto
+                  .d-flex.justify-content-between.align-items-center.mb-3
+                    .price
+                        strong $#{Number(product.precio || 0).toFixed(2)}
+                    small.text-muted Stock: #{Number(product.stock || 0)}
+                  button.btn.btn-primary.w-100.add-to-cart-btn(
+                    data-product-id=product._id,
+                    data-product-name=(product.nombre || 'Producto sin nombre'),
+                    data-product-price=(product.precio || 0),
+                    data-product-image=(product.imagen || '/images/placeholder.png')
+                  ) Añadir al Carrito
+    else
+      .row
+        .col-12
+          .alert.alert-info.text-center(role='alert')
+            h4.mb-2 No hay productos disponibles en este momento
+            p.mb-0 Intenta de nuevo en unos minutos o revisa la carga de datos de la API.
 
     // Modal de confirmación
     .modal.fade#add-to-cart-modal(tabindex='-1')
@@ -43,23 +50,13 @@ block content
   script.
     document.addEventListener('DOMContentLoaded', function() {
       const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-      const modal = new bootstrap.Modal(document.getElementById('add-to-cart-modal'));
+      const modalElement = document.getElementById('add-to-cart-modal');
+      const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
       const modalCartLink = document.getElementById('modal-cart-link');
-
-      // Función para obtener o crear sessionId
-      function getSessionId() {
-        let sessionId = localStorage.getItem('cartSessionId');
-        if (!sessionId) {
-          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-          localStorage.setItem('cartSessionId', sessionId);
-        }
-        return sessionId;
-      }
 
       addToCartButtons.forEach(button => {
         button.addEventListener('click', function() {
           const productId = this.getAttribute('data-product-id');
-          const sessionId = getSessionId();
 
           // Enviar a API
           fetch('/api/cart/add', {
@@ -68,7 +65,6 @@ block content
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              sessionId: sessionId,
               productId: productId,
               cantidad: 1
             })
@@ -76,10 +72,9 @@ block content
           .then(response => response.json())
           .then(data => {
             if (data._id) {
-              if (modalCartLink) {
-                modalCartLink.href = '/cart?sessionId=' + sessionId;
+              if (modal) {
+                modal.show();
               }
-              modal.show();
             } else {
               alert('Error al añadir al carrito: ' + (data.message || 'Error desconocido'));
             }

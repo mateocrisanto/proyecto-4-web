@@ -5,12 +5,28 @@
  */
 
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const Cart = mongoose.model('Cart');
 const Product = mongoose.model('Product');
 
+const ensureCartSessionId = (req, res) => {
+    let sessionId = req.cookies?.cartSessionId || req.params.sessionid || req.body.sessionId;
+
+    if (!sessionId) {
+        sessionId = `session_${crypto.randomUUID()}`;
+        res.cookie('cartSessionId', sessionId, {
+            httpOnly: true,
+            sameSite: 'lax',
+            maxAge: 1000 * 60 * 60 * 24 * 7
+        });
+    }
+
+    return sessionId;
+};
+
 // ========== OBTENER CARRITO POR SESSION ID ==========
 const cartRead = (req, res) => {
-    const sessionId = req.params.sessionid || req.body.sessionId;
+    const sessionId = ensureCartSessionId(req, res);
     if (!sessionId) {
         res.status(400).json({ "message": "Se requiere sessionId" });
         return;
@@ -44,7 +60,7 @@ const cartRead = (req, res) => {
 
 // ========== AGREGAR PRODUCTO AL CARRITO ==========
 const cartAddItem = (req, res) => {
-    const sessionId = req.body.sessionId;
+    const sessionId = ensureCartSessionId(req, res);
     const productId = req.body.productId;
     const cantidad = req.body.cantidad || 1;
 
@@ -112,7 +128,7 @@ const cartAddItem = (req, res) => {
 
 // ========== ACTUALIZAR CANTIDAD DE UN ITEM ==========
 const cartUpdateItem = (req, res) => {
-    const sessionId = req.body.sessionId;
+    const sessionId = ensureCartSessionId(req, res);
     const productId = req.body.productId;
     const cantidad = req.body.cantidad;
 
@@ -161,7 +177,7 @@ const cartUpdateItem = (req, res) => {
 
 // ========== ELIMINAR ITEM DEL CARRITO ==========
 const cartRemoveItem = (req, res) => {
-    const sessionId = req.body.sessionId;
+    const sessionId = ensureCartSessionId(req, res);
     const productId = req.body.productId;
 
     if (!sessionId || !productId) {
@@ -198,7 +214,7 @@ const cartRemoveItem = (req, res) => {
 
 // ========== VACIAR CARRITO ==========
 const cartClear = (req, res) => {
-    const sessionId = req.body.sessionId;
+    const sessionId = ensureCartSessionId(req, res);
 
     if (!sessionId) {
         res.status(400).json({ "message": "Se requiere sessionId" });

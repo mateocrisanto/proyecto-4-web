@@ -58,11 +58,7 @@ block content
             a.btn.btn-primary.btn-lg(href='/products') Explorar productos
 
   script.
-    // Obtener sessionId del servidor o localStorage
     let sessionId = '#{sessionId}';
-    if (sessionId === 'default-session') {
-      sessionId = localStorage.getItem('cartSessionId') || 'default-session';
-    }
 
     function updateQuantity(productId, newQuantity) {
       if (newQuantity < 1) return;

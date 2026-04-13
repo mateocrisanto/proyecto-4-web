@@ -102,25 +102,53 @@ block content
             h2.display-5 Productos Destacados
             p.lead Explora nuestra selección de productos tecnológicos
 
-        .row.g-4
-          each product in featuredProducts
-            .col-lg-4.col-md-6
-              .card.h-100.shadow-sm.product-card
-                img.card-img-top(src=product.imagen, alt=product.nombre, onerror="this.src='/images/placeholder.png'")
-                .card-body.d-flex.flex-column
-                  h5.card-title= product.nombre
-                  p.card-text= product.descripcion
-                  .mt-auto
-                    .d-flex.justify-content-between.align-items-center.mb-3
-                      .price
-                        strong $#{(product.precio).toFixed(2)}
-                      small.text-muted Stock: #{product.stock}
-                    button.btn.btn-primary.w-100.add-to-cart-btn(
-                      data-product-id=product._id,
-                      data-product-name=product.nombre,
-                      data-product-price=product.precio,
-                      data-product-image=product.imagen
-                    ) Añadir al Carrito
+        #featuredProductsCarousel.carousel.slide.products-carousel(data-bs-ride='carousel')
+          .carousel-indicators
+            each product, index in featuredProducts
+              button(
+                type='button',
+                data-bs-target='#featuredProductsCarousel',
+                data-bs-slide-to=index,
+                class=index === 0 ? 'active' : '',
+                aria-current=index === 0 ? 'true' : 'false',
+                aria-label=`Producto ${index + 1}`
+              )
+
+          .carousel-inner
+            each product, index in featuredProducts
+              .carousel-item(class=index === 0 ? 'active' : '')
+                .row.justify-content-center
+                  .col-lg-8.col-md-10
+                    .card.shadow-sm.product-card.product-carousel-card
+                      .row.g-0.h-100
+                        .col-md-5
+                          img.card-img-top.product-carousel-image(
+                            src=product.imagen,
+                            alt=product.nombre,
+                            onerror="this.src='/images/placeholder.png'"
+                          )
+                        .col-md-7
+                          .card-body.d-flex.flex-column.h-100
+                            span.badge.bg-primary-subtle.text-primary-emphasis.mb-3.align-self-start= product.categoria || 'Producto destacado'
+                            h5.card-title= product.nombre
+                            p.card-text.flex-grow-1= product.descripcion
+                            .d-flex.justify-content-between.align-items-center.mb-3.product-carousel-meta
+                              .price
+                                strong $#{(product.precio).toFixed(2)}
+                              small.text-muted Stock: #{product.stock}
+                            button.btn.btn-primary.w-100.add-to-cart-btn(
+                              data-product-id=product._id,
+                              data-product-name=product.nombre,
+                              data-product-price=product.precio,
+                              data-product-image=product.imagen
+                            ) Añadir al Carrito
+
+          button.carousel-control-prev(type='button', data-bs-target='#featuredProductsCarousel', data-bs-slide='prev')
+            span.carousel-control-prev-icon(aria-hidden='true')
+            span.visually-hidden Anterior
+          button.carousel-control-next(type='button', data-bs-target='#featuredProductsCarousel', data-bs-slide='next')
+            span.carousel-control-next-icon(aria-hidden='true')
+            span.visually-hidden Siguiente
 
         .row.mt-4
           .col-12.text-center
@@ -309,19 +337,9 @@ block content
         const modal = new bootstrap.Modal(document.getElementById('add-to-cart-modal'));
         const modalCartLink = document.getElementById('modal-cart-link');
 
-        function getSessionId() {
-          let sessionId = localStorage.getItem('cartSessionId');
-          if (!sessionId) {
-            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('cartSessionId', sessionId);
-          }
-          return sessionId;
-        }
-
         addToCartButtons.forEach(button => {
           button.addEventListener('click', function() {
             const productId = this.getAttribute('data-product-id');
-            const sessionId = getSessionId();
 
             fetch('/api/cart/add', {
               method: 'POST',
@@ -329,7 +347,6 @@ block content
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                sessionId: sessionId,
                 productId: productId,
                 cantidad: 1
               })
@@ -337,9 +354,6 @@ block content
             .then(response => response.json())
             .then(data => {
               if (data._id) {
-                if (modalCartLink) {
-                  modalCartLink.href = '/cart?sessionId=' + sessionId;
-                }
                 modal.show();
               } else {
                 alert('Error al añadir al carrito: ' + (data.message || 'Error desconocido'));

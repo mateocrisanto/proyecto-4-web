@@ -12,6 +12,7 @@
 
 // Módulo para hacer peticiones HTTP a nuestra API REST
 const request = require('request');
+const crypto = require('crypto');
 
 // ========== CONFIGURACIÓN DE AMBIENTES ==========
 // Define la URL del servidor según el ambiente (desarrollo o producción)
@@ -39,6 +40,21 @@ const availableMobilePlans = [
 const availableChannels = [
   'CNN', 'BBC', 'ESPN', 'Telemundo', 'Discovery', 'EuroNews', 'Fox Sports'
 ];
+
+const ensureCartSessionId = (req, res) => {
+  let sessionId = req.cookies?.cartSessionId || req.query.sessionId;
+
+  if (!sessionId) {
+    sessionId = `session_${crypto.randomUUID()}`;
+    res.cookie('cartSessionId', sessionId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24 * 7
+    });
+  }
+
+  return sessionId;
+};
 
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR LA PÁGINA DE INICIO ==========
@@ -143,17 +159,32 @@ const productsController = (req, res, next) => {
   };
 
   request(requestOptions, (err, response, body) => {
+    const normalizeProducts = (products) => {
+      if (!Array.isArray(products)) {
+        return [];
+      }
+
+      return products.map(product => ({
+        ...product,
+        nombre: product?.nombre || 'Producto sin nombre',
+        descripcion: product?.descripcion || 'Sin descripción disponible.',
+        precio: Number(product?.precio) || 0,
+        imagen: product?.imagen || '/images/placeholder.png',
+        stock: Number(product?.stock) || 0
+      }));
+    };
+
     if (err) {
       console.log('Error al obtener los productos:', err);
       res.render('products', { title: 'Productos', products: [] });
     } else if (response.statusCode === 200) {
-      res.render('products', { title: 'Productos', products: body });
+      res.render('products', {
+        title: 'Productos',
+        products: normalizeProducts(body)
+      });
     } else {
       console.log('Error al obtener los productos:', response.statusCode);
-      res.render('error', {
-        message: 'Error al obtener los productos',
-        error: { status: response.statusCode }
-      });
+      res.render('products', { title: 'Productos', products: [] });
     }
   });
 };
@@ -162,8 +193,7 @@ const productsController = (req, res, next) => {
 // GET /cart
 // Muestra el carrito de compras
 const cartController = (req, res, next) => {
-  // Obtener sessionId de query params o usar uno por defecto
-  const sessionId = req.query.sessionId || 'default-session';
+  const sessionId = ensureCartSessionId(req, res);
   const path = `/api/cart/${sessionId}`;
   const requestOptions = {
     url: apiOptions.server + path,
