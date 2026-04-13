@@ -15,14 +15,14 @@ const request = require('request');
 const crypto = require('crypto');
 
 // ========== CONFIGURACIÓN DE AMBIENTES ==========
-// Define la URL del servidor según el ambiente (desarrollo o producción)
-let apiOptions = {
-  server: 'http://localhost:3000' // Ambiente de desarrollo (máquina local)
+// Usa una URL configurable y elimina la barra final para evitar //api/products
+const defaultApiServer = process.env.NODE_ENV === 'production'
+  ? `http://127.0.0.1:${process.env.PORT || 3000}`
+  : 'http://localhost:3000';
+
+const apiOptions = {
+  server: (process.env.API_SERVER || defaultApiServer).replace(/\/+$/, '')
 };
-// Si es producción, cambiar a la URL del servidor en Heroku
-if (process.env.NODE_ENV === 'production') {
-  apiOptions.server = 'https://isp-11a2f5abb039.herokuapp.com/';
-}
 
 // ========== DATOS DISPONIBLES PARA LOS SERVICIOS ==========
 // Arrays con todas las opciones de planes y servicios que ofrecemos

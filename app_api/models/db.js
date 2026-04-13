@@ -10,7 +10,7 @@ require('./esquema_cart');
 const dbURI =
   process.env.MONGODB_URI ||
   process.env.MONGO_URI ||
-  'mongodb://127.0.0.1/ISP';
+  'mongodb://127.0.0.1/isp';
 
 if (process.platform === 'win32') {
   const rl = readLine.createInterface({
