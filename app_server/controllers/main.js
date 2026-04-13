@@ -21,7 +21,7 @@ let apiOptions = {
 };
 // Si es producción, cambiar a la URL del servidor en Heroku
 if (process.env.NODE_ENV === 'production') {
-  apiOptions.server = 'https://dw3-202520.herokuapp.com';
+  apiOptions.server = 'https://isp-11a2f5abb039.herokuapp.com/';
 }
 
 // ========== DATOS DISPONIBLES PARA LOS SERVICIOS ==========
