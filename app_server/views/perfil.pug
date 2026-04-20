@@ -1,65 +1,76 @@
 extends layout
 
 block content
-  .py-5
-    h1.mb-4 #{title}
-    p.lead Revisa y actualiza tu información de cliente.
-    if user
-      .card.mb-4
-        .card-body
-          h2.mb-3 Datos del cliente
-          dl.row
-            dt.col-sm-3 Nombre
-            dd.col-sm-9 #{user.nombre} #{user.apellido}
-            dt.col-sm-3 Identificación
-            dd.col-sm-9 #{user.identificacion}
-            dt.col-sm-3 Teléfono
-            dd.col-sm-9 #{user.telefono}
-            dt.col-sm-3 Correo
-            dd.col-sm-9 #{user.email || 'No registrado'}
-            dt.col-sm-3 Dirección
-            dd.col-sm-9 #{user.direccion || 'No especificada'}
-          if user && user._id
-            a.btn.btn-warning.mt-3(href='/users/edit/'+user._id) Editar cliente
-      .row.g-4
-        .col-md-4
-          .card.shadow-sm.h-100
-            .card-body
-              h3 Planes de internet
-              if user.services && user.services.internetPlans.length
-                ul.mb-0
-                  each plan in user.services.internetPlans
-                    li= plan
-              else
-                p.text-muted No hay planes seleccionados.
-        .col-md-4
-          .card.shadow-sm.h-100
-            .card-body
-              h3 Telefonía fija
-              if user.services && user.services.phonePlans.length
-                ul.mb-0
-                  each plan in user.services.phonePlans
-                    li= plan
-              else
-                p.text-muted No hay planes seleccionados.
-        .col-md-4
-          .card.shadow-sm.h-100
-            .card-body
-              h3 Plan celular
-              if user.services && user.services.mobilePlans.length
-                ul.mb-0
-                  each plan in user.services.mobilePlans
-                    li= plan
-              else
-                p.text-muted No hay planes seleccionados.
-      .card.mt-4
-        .card-body
-          h3 Canales internacionales
-          if user.services && user.services.internationalChannels.length
-            ul.mb-0
-              each channel in user.services.internationalChannels
-                li= channel
-          else
-            p.text-muted No hay canales seleccionados.
-    else
-      p.text-danger No se encontró información de usuario.
+  .container.py-5
+    .row
+      .col-lg-6.mx-auto
+        h2.mb-4
+          i.fas.fa-user-edit.me-2(style='color:var(--c-cyan)')
+          | Mi Perfil
+
+        if error
+          .alert.mb-3(style='background:rgba(244,145,191,0.12);border:1px solid rgba(244,145,191,0.4);color:#F491BF;border-radius:.75rem')
+            i.fas.fa-exclamation-circle.me-2
+            = error
+
+        if success
+          .alert.mb-3(style='background:rgba(113,228,244,0.12);border:1px solid rgba(113,228,244,0.4);color:#71E4F4;border-radius:.75rem')
+            i.fas.fa-check-circle.me-2
+            = success
+
+        .card(style='border:1px solid rgba(113,228,244,0.2)')
+          .card-header(style='background:rgba(113,228,244,0.06)')
+            .d-flex.align-items-center
+              i.fas.fa-user-circle.me-2.fa-2x(style='color:var(--c-cyan)')
+              div
+                h5.mb-0= user.username
+                small.text-muted
+                  if user.role === 'admin'
+                    span.badge(style='background:linear-gradient(90deg,#D374FF,#F491BF);color:#0d0d14;border-radius:50px;font-size:.7rem')
+                      i.fas.fa-shield-alt.me-1
+                      | ADMIN
+                  else if user.role === 'guest'
+                    span.badge(style='background:rgba(255,255,255,0.1);color:#a0a0b8;border-radius:50px;font-size:.7rem') Invitado
+                  else
+                    span.badge(style='background:rgba(113,228,244,0.2);color:var(--c-cyan);border-radius:50px;font-size:.7rem') Usuario
+
+          .card-body
+            if user.role === 'guest'
+              .alert(style='background:rgba(244,145,191,0.1);border:1px solid rgba(244,145,191,0.3);color:#F491BF;border-radius:.75rem')
+                i.fas.fa-info-circle.me-2
+                | Estás como invitado.&nbsp;
+                a(href='/register' style='color:#F491BF') Crea una cuenta
+                |  para guardar tu perfil.
+            else
+              form(action='/perfil' method='POST')
+                .mb-3
+                  label.form-label Cambiar nombre de usuario
+                  input.form-control(
+                    type='text'
+                    name='username'
+                    value=user.username
+                    placeholder='nuevo_usuario'
+                    autocomplete='username'
+                  )
+                hr(style='border-color:rgba(255,255,255,0.08)')
+                h6.mb-3(style='color:#a0a0b8') Cambiar contraseña (opcional)
+                .mb-3
+                  label.form-label Contraseña actual
+                  input.form-control(
+                    type='password'
+                    name='currentPassword'
+                    placeholder='••••••••'
+                    autocomplete='current-password'
+                  )
+                .mb-3
+                  label.form-label Nueva contraseña
+                  input.form-control(
+                    type='password'
+                    name='newPassword'
+                    placeholder='••••••••'
+                    autocomplete='new-password'
+                  )
+                .d-grid.mt-4
+                  button.btn.btn-primary(type='submit')
+                    i.fas.fa-save.me-2
+                    | Guardar Cambios

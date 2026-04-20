@@ -1,11 +1,11 @@
 doctype html
-html
+html(lang='es' data-bs-theme='dark')
   head
     title= title
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1')
     link(rel='stylesheet', href='/stylesheets/style.css')
-    // bootstratp css
+    // bootstrap css
     link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css", rel="stylesheet")
     // bootstrap js
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js")
@@ -34,8 +34,44 @@ html
                 | Carrito
                 if cart && cart.items && cart.items.length > 0
                   span.badge.bg-primary.ms-1= cart.items.length
-    main.container.pt-5.mt-4.app-content
+          ul.navbar-nav.ms-auto.mb-2.mb-lg-0.align-items-center
+            if sessionUser && sessionUser.role === 'admin'
+              li.nav-item.dropdown.me-2
+                a.nav-link.dropdown-toggle(href='#' id='adminDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false' style='color:var(--c-purple)')
+                  i.fas.fa-cog.me-1
+                  | Admin
+                ul.dropdown-menu.dropdown-menu-end(aria-labelledby='adminDropdown' style='background:#1a1a2e;border:1px solid rgba(211,116,255,0.3)')
+                  li
+                    a.dropdown-item(href='/admin/products' style='color:#e8e8f0')
+                      i.fas.fa-box.me-2(style='color:var(--c-cyan)')
+                      | Productos
+                  li
+                    a.dropdown-item(href='/admin/services' style='color:#e8e8f0')
+                      i.fas.fa-wifi.me-2(style='color:var(--c-purple)')
+                      | Servicios
+                  li
+                    a.dropdown-item(href='/admin/asesorias' style='color:#e8e8f0')
+                      i.fas.fa-comments.me-2(style='color:var(--c-pink)')
+                      | Asesorías
+                  li
+                    a.dropdown-item(href='/admin/users' style='color:#e8e8f0')
+                      i.fas.fa-users.me-2(style='color:var(--c-cyan-light)')
+                      | Usuarios
+              li.nav-item.me-2
+                span.badge(style='background:linear-gradient(90deg,#D374FF,#F491BF);color:#0d0d14;font-size:.75rem;border-radius:50px;padding:.35em .8em')
+                  i.fas.fa-shield-alt.me-1
+                  | ADMIN
+            if sessionUser
+              li.nav-item
+                a.nav-link(href='/perfil' style='color:var(--c-cyan);font-size:.9rem')
+                  i.fas.fa-user-circle.me-1
+                  = sessionUser.username
+              li.nav-item
+                a.btn.btn-sm.btn-outline-danger.ms-2(href='/logout' style='border-radius:50px')
+                  i.fas.fa-sign-out-alt.me-1
+                  | Salir
+    main.app-content
       block content
-    footer.footer.fixed-bottom.py-3.bg-dark.text-white
+    footer.footer.py-3.bg-dark.text-white
       .container.text-center
         span NEW TECH

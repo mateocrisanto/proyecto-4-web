@@ -1,0 +1,46 @@
+extends auth_layout
+
+block content
+  h4.text-center.mb-1.text-white Bienvenido
+  p.text-center.mb-4(style='color:#a0a0b8;font-size:.9rem') Ingresa con tu cuenta para continuar
+
+  if error
+    .alert.mb-3(style='background:rgba(244,145,191,0.12);border:1px solid rgba(244,145,191,0.4);color:#F491BF;border-radius:.75rem')
+      i.fas.fa-exclamation-circle.me-2
+      = error
+
+  form(action='/login' method='POST')
+    .mb-3
+      label.form-label(for='username' style='color:#a0a0b8;font-size:.85rem') Usuario
+      input#username.form-control(
+        type='text'
+        name='username'
+        placeholder='tu_usuario'
+        autocomplete='username'
+        required
+      )
+    .mb-4
+      label.form-label(for='password' style='color:#a0a0b8;font-size:.85rem') Contraseña
+      input#password.form-control(
+        type='password'
+        name='password'
+        placeholder='••••••••'
+        autocomplete='current-password'
+        required
+      )
+    button.btn.btn-primary.w-100(type='submit')
+      i.fas.fa-sign-in-alt.me-2
+      | Iniciar Sesión
+
+  .text-center.mt-4
+    span(style='color:#a0a0b8;font-size:.875rem') ¿No tienes cuenta?&nbsp;
+    a(href='/register' style='color:#71E4F4') Regístrate aquí
+
+  .text-center.mt-3
+    .or-divider.mb-3(style='display:flex;align-items:center;gap:.75rem')
+      hr(style='flex:1;border-color:rgba(255,255,255,0.1)')
+      span(style='color:#a0a0b8;font-size:.8rem;white-space:nowrap') o continúa sin cuenta
+      hr(style='flex:1;border-color:rgba(255,255,255,0.1)')
+    a.btn.w-100(href='/guest' style='border:1px solid rgba(255,255,255,0.15);color:#a0a0b8;border-radius:50px;font-size:.875rem')
+      i.fas.fa-user-secret.me-2
+      | Acceder como invitado

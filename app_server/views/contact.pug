@@ -1,36 +1,35 @@
 extends layout
 
 block content
-  .py-5
-    .container
-      .row
-        .col-lg-8.mx-auto
-          h1.mb-4 #{title}
-          p.lead.mb-4 Completa el formulario a continuación y nos pondremos en contacto pronto para asesorarte sobre los mejores planes para ti.
-          
-          .card.shadow-sm
-            .card-body
-              form#asesorias-form
-                .mb-3
-                  label.form-label(for='nombre') Nombre Completo
-                  input.form-control#nombre(type='text', placeholder='Tu nombre', required, name='nombre')
-                  .invalid-feedback Por favor ingresa tu nombre.
-                
-                .mb-3
-                  label.form-label(for='consulta') Consulta o Tema de Asesoría
-                  textarea.form-control#consulta(rows='5', placeholder='Cuéntanos tu consulta, necesidad o sobre qué servicio deseas más información...', required, name='consulta')
-                  .invalid-feedback Por favor ingresa tu consulta.
-                
-                .d-grid
-                  button.btn.btn-primary.btn-lg(type='submit', id='submit-btn') Enviar Solicitud de Asesoría
+  .container.py-5
+    .row
+      .col-lg-8.mx-auto
+        h1.mb-4 #{title}
+        p.lead.mb-4 Completa el formulario a continuación y nos pondremos en contacto pronto para asesorarte sobre los mejores planes para ti.
 
-          .alert.alert-success.mt-4(id='success-message', style='display: none;')
-            h5.alert-heading ¡Gracias!
-            p Tu solicitud de asesoría ha sido enviada exitosamente. Pronto nos pondremos en contacto.
+        .card.shadow-sm
+          .card-body
+            form#asesorias-form
+              .mb-3
+                label.form-label(for='nombre') Nombre Completo
+                input.form-control#nombre(type='text', placeholder='Tu nombre', required, name='nombre')
+                .invalid-feedback Por favor ingresa tu nombre.
 
-          .alert.alert-danger.mt-4(id='error-message', style='display: none;')
-            h5.alert-heading Error
-            p Ocurrió un error al enviar tu solicitud. Por favor intenta nuevamente.
+              .mb-3
+                label.form-label(for='consulta') Consulta o Tema de Asesoría
+                textarea.form-control#consulta(rows='5', placeholder='Cuéntanos tu consulta, necesidad o sobre qué servicio deseas más información...', required, name='consulta')
+                .invalid-feedback Por favor ingresa tu consulta.
+
+              .d-grid
+                button.btn.btn-primary.btn-lg(type='submit', id='submit-btn') Enviar Solicitud de Asesoría
+
+        .alert.alert-success.mt-4(id='success-message', style='display: none;')
+          h5.alert-heading ¡Gracias!
+          p Tu solicitud de asesoría ha sido enviada exitosamente. Pronto nos pondremos en contacto.
+
+        .alert.alert-danger.mt-4(id='error-message', style='display: none;')
+          h5.alert-heading Error
+          p Ocurrió un error al enviar tu solicitud. Por favor intenta nuevamente.
 
   script.
     document.addEventListener('DOMContentLoaded', function() {
@@ -75,17 +74,17 @@ block content
           if (response.ok) {
             const data = await response.json();
             console.log('Asesoría creada:', data);
-            
+
             // Limpiar el formulario
             form.reset();
             form.classList.remove('was-validated');
-            
+
             // Mostrar mensaje de éxito
             successMessage.style.display = 'block';
-            
+
             // Ocultar el formulario por un momento
             form.style.display = 'none';
-            
+
             // Volver a mostrar después de 3 segundos
             setTimeout(() => {
               form.style.display = 'block';

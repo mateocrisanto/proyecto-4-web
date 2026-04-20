@@ -1,0 +1,49 @@
+extends layout
+
+block content
+  .container.py-4
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-users.me-2(style='color:var(--c-cyan)')
+        | Gestión de Usuarios
+      a.btn.btn-primary(href='/' style='border-radius:50px')
+        i.fas.fa-home.me-1
+        | Volver al inicio
+
+    if error
+      .alert.mb-3(style='background:rgba(244,145,191,0.12);border:1px solid rgba(244,145,191,0.4);color:#F491BF;border-radius:.75rem')
+        = error
+
+    if users && users.length > 0
+      .table-responsive
+        table.table.table-hover(style='--bs-table-bg:transparent;--bs-table-hover-bg:rgba(113,228,244,0.05)')
+          thead
+            tr
+              th Usuario
+              th Rol
+              th Registrado
+              th Acciones
+          tbody
+            each u in users
+              tr
+                td
+                  i.fas.fa-user-circle.me-2(style='color:var(--c-cyan-light)')
+                  = u.username
+                td
+                  if u.role === 'admin'
+                    span.badge(style='background:linear-gradient(90deg,#D374FF,#F491BF);color:#0d0d14;border-radius:50px') ADMIN
+                  else
+                    span.badge(style='background:rgba(113,228,244,0.2);color:var(--c-cyan);border-radius:50px') usuario
+                td.text-muted.small= new Date(u.creado).toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'})
+                td
+                  if u.role !== 'admin'
+                    form(action=`/admin/users/delete/${u._id}` method='POST' style='display:inline')
+                      button.btn.btn-danger.btn-sm(type='submit' onclick=`return confirm('¿Eliminar al usuario ${u.username}?')`)
+                        i.fas.fa-user-times.me-1
+                        | Eliminar
+                  else
+                    span.text-muted.small (protegido)
+    else
+      .alert.text-center(style='background:rgba(113,228,244,0.05);border:1px solid rgba(113,228,244,0.15);color:#a0a0b8')
+        i.fas.fa-users.me-2
+        | No hay usuarios registrados.

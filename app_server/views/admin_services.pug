@@ -1,0 +1,67 @@
+extends layout
+
+block content
+  .container.py-4
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-wifi.me-2(style='color:var(--c-purple)')
+        | Gestión de Servicios
+      a.btn.btn-primary(href='/' style='border-radius:50px')
+        i.fas.fa-home.me-1
+        | Volver al inicio
+
+    if error
+      .alert.mb-3(style='background:rgba(244,145,191,0.12);border:1px solid rgba(244,145,191,0.4);color:#F491BF;border-radius:.75rem')
+        = error
+
+    //- Formulario para agregar servicio
+    .card.mb-4(style='border:1px solid rgba(211,116,255,0.2)')
+      .card-header(style='background:rgba(211,116,255,0.08)')
+        h5.mb-0
+          i.fas.fa-plus-circle.me-2(style='color:var(--c-purple)')
+          | Añadir Nuevo Servicio
+      .card-body
+        form(action='/admin/services' method='POST')
+          .row.g-3
+            .col-md-4
+              label.form-label Nombre del Plan
+              input.form-control(type='text' name='nombre' required placeholder='Ej: 100 Mbps')
+            .col-md-3
+              label.form-label Categoría
+              select.form-select(name='categoria' required)
+                option(value='internet') Internet
+                option(value='telefonia') Telefonía
+                option(value='celular') Celular
+                option(value='canales') Canales
+            .col-md-5
+              label.form-label Descripción (opcional)
+              input.form-control(type='text' name='descripcion' placeholder='Descripción del servicio')
+            .col-12
+              button.btn.btn-primary(type='submit')
+                i.fas.fa-plus.me-1
+                | Añadir Servicio
+
+    //- Agrupar por categoría
+    - const cats = [{key:'internet',label:'Internet',icon:'fa-wifi',color:'var(--c-cyan)'},{key:'telefonia',label:'Telefonía',icon:'fa-phone',color:'var(--c-purple)'},{key:'celular',label:'Celular',icon:'fa-mobile-alt',color:'var(--c-pink)'},{key:'canales',label:'Canales',icon:'fa-tv',color:'var(--c-cyan-light)'}]
+    each cat in cats
+      - const catServices = services.filter(s => s.categoria === cat.key)
+      .mb-4
+        h5.mb-3
+          i(class=`fas ${cat.icon} me-2` style=`color:${cat.color}`)
+          = cat.label
+          span.badge.ms-2.rounded-pill(style=`background:${cat.color};color:#0d0d14;font-size:.7rem`)= catServices.length
+        if catServices.length > 0
+          .row.g-2
+            each svc in catServices
+              .col-lg-3.col-md-4.col-sm-6
+                .card.h-100(style='border:1px solid rgba(211,116,255,0.15)')
+                  .card-body.d-flex.justify-content-between.align-items-start
+                    div
+                      h6.mb-1= svc.nombre
+                      p.text-muted.small.mb-0= svc.descripcion
+                    form(action=`/admin/services/delete/${svc._id}` method='POST' class='ms-2 flex-shrink-0')
+                      button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("¿Eliminar este servicio?")')
+                        i.fas.fa-trash
+        else
+          p.text-muted.small.ms-1 Sin servicios en esta categoría.
+        hr(style='border-color:rgba(255,255,255,0.08)')

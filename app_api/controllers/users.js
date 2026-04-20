@@ -11,6 +11,7 @@
 const mongoose = require('mongoose');
 // Obtener el modelo 'user' (compilado en esquema_users.js)
 const users = mongoose.model('user');
+const apiMessages = require('../config/messages');
 // ========== CREAR UN NUEVO CLIENTE ==========
 // POST /api/users
 // Recibe datos del cliente desde req.body (viene del formulario de registro)
@@ -44,7 +45,7 @@ const usersCreate = (req, res) => {
             // Error: hubo un problema al crear el cliente (validación, conexión, etc)
             // Responder con código 500 (Server Error) y detalles del error
             res.status(500).json(err);
-            console.log('Error al crear el usuario');
+            console.log(apiMessages.users.createError);
         });
 };
 
@@ -60,10 +61,10 @@ const usersList = (req, res) => {
         .then((objetoUsuarios) => {
             if (!objetoUsuarios) { 
                 // No se encontraron clientes
-                console.log('No se encontraron usuarios');
+                console.log(apiMessages.users.notFoundList);
                 res.status(404).json({
-                    "status": "error",
-                    "message": "No se encontraron usuarios"
+                    "status": apiMessages.common.errorStatus,
+                    "message": apiMessages.users.notFoundList
                 });
                 return;
             } else { 
@@ -74,7 +75,7 @@ const usersList = (req, res) => {
         .catch((err) => { 
             // Error en la consulta
             res.status(500).json(err);
-            console.log('Error al listar los usuarios');
+            console.log(apiMessages.users.listError);
         });
 };
 
@@ -93,12 +94,12 @@ const usersFindName = (req, res) => {
         .exec()
         .then((objetoUsuarios) => {
             if (!objetoUsuarios) { // find no encontró ningún usuario
-                console.log('No se encontraron usuarios');
+                console.log(apiMessages.users.notFoundList);
                 res // no existen documentos en la colección users
                     .status(404)
                     .json({
-                        "status": "error",
-                        "message": "No se encontraron usuarios"
+                        "status": apiMessages.common.errorStatus,
+                        "message": apiMessages.users.notFoundList
                     });
                 return;
             } else  // find encontró usuarios
@@ -110,7 +111,7 @@ const usersFindName = (req, res) => {
             res
                 .status(500)
                 .json(err);
-            console.log('Error al listar los usuarios');
+            console.log(apiMessages.users.listError);
         });
 };
 
@@ -125,8 +126,8 @@ const usersRead = (req, res) => {
             if (!objetoUsuario) {
                 // No existe cliente con ese ID
                 res.status(404).json({
-                    status: 'error',
-                    message: 'No se encontró el usuario con Id: ' + req.params.userId
+                    status: apiMessages.common.errorStatus,
+                    message: apiMessages.users.notFoundById(req.params.userId)
                 });
             } else {
                 // Éxito: retorna el cliente encontrado
@@ -136,7 +137,7 @@ const usersRead = (req, res) => {
         .catch((err) => { 
             // Error en la búsqueda (ej: ID inválido)
             res.status(500).json(err);
-            console.log('Error al buscar el usuario con Id: ' + req.params.userId);
+            console.log(apiMessages.users.readByIdError(req.params.userId));
         });
 };
 
@@ -150,10 +151,10 @@ const usersUpdate = (req, res) => {
         .then((objetoUsuario) => {
             if (!objetoUsuario) { 
                 // No existe cliente con ese ID
-                console.log('No se encontró el usuario con Id: ' + req.params.userId);
+                console.log(apiMessages.users.notFoundById(req.params.userId));
                 res.status(404).json({
-                    "status": "error",
-                    "message": "No se encontró el usuario con Id: " + req.params.userId
+                    "status": apiMessages.common.errorStatus,
+                    "message": apiMessages.users.notFoundById(req.params.userId)
                 });
                 return;
             } else { 
@@ -181,14 +182,14 @@ const usersUpdate = (req, res) => {
                     .catch((err) => { 
                         // Error al guardar los cambios
                         res.status(500).json(err);
-                        console.log('Error al actualizar el usuario con Id: ' + req.params.userId);
+                        console.log(apiMessages.users.updateError(req.params.userId));
                     });
             }
         })
         .catch((err) => { 
             // Error en la búsqueda o actualización
             res.status(500).json(err);
-            console.log('Error al actualizar el usuario con Id: ' + req.params.userId);
+            console.log(apiMessages.users.updateError(req.params.userId));
         });
 };
 
@@ -202,10 +203,10 @@ const usersDelete = (req, res) => {
         .then((objetoUsuario) => {
                 if (!objetoUsuario) { 
                     // No existe cliente con ese ID
-                    console.log('No se encontró el usuario con Id: ' + req.params.userId);
+                    console.log(apiMessages.users.notFoundById(req.params.userId));
                     res.status(404).json({
-                        "status": "error",
-                        "message": "No se encontró el usuario con Id: " + req.params.userId
+                        "status": apiMessages.common.errorStatus,
+                        "message": apiMessages.users.notFoundById(req.params.userId)
                     });
                     return;
                 } else { 
@@ -217,7 +218,7 @@ const usersDelete = (req, res) => {
         .catch((err) => { 
             // Error al eliminar (ej: ID inválido, problema de conexión)
             res.status(500).json(err);
-            console.log('Error al eliminar el usuario con Id: ' + req.params.userId);
+            console.log(apiMessages.users.deleteError(req.params.userId));
         });
 };
 

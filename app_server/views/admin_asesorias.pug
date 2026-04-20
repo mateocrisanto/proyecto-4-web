@@ -1,0 +1,40 @@
+extends layout
+
+block content
+  .container.py-4
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-comments.me-2(style='color:var(--c-pink)')
+        | Solicitudes de Asesoría
+      a.btn.btn-primary(href='/' style='border-radius:50px')
+        i.fas.fa-home.me-1
+        | Volver al inicio
+
+    if error
+      .alert.mb-3(style='background:rgba(244,145,191,0.12);border:1px solid rgba(244,145,191,0.4);color:#F491BF;border-radius:.75rem')
+        = error
+
+    if asesorias && asesorias.length > 0
+      p.text-muted.mb-3
+        i.fas.fa-inbox.me-1
+        | #{asesorias.length} solicitud(es) recibida(s)
+      .row.g-3
+        each a in asesorias
+          .col-lg-6
+            .card.h-100(style='border:1px solid rgba(244,145,191,0.2)')
+              .card-body
+                .d-flex.justify-content-between.align-items-start.mb-2
+                  h6.mb-0(style='color:var(--c-pink)')
+                    i.fas.fa-user-circle.me-2
+                    = a.nombre
+                  small.text-muted= new Date(a.creado).toLocaleDateString('es-EC', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+                p.card-text.mb-3= a.consulta
+              .card-footer
+                form(action=`/admin/asesorias/delete/${a._id}` method='POST')
+                  button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("¿Eliminar esta solicitud?")')
+                    i.fas.fa-trash.me-1
+                    | Eliminar
+    else
+      .alert.text-center(style='background:rgba(244,145,191,0.05);border:1px solid rgba(244,145,191,0.15);color:#a0a0b8')
+        i.fas.fa-inbox.me-2
+        | No hay solicitudes de asesoría por ahora.

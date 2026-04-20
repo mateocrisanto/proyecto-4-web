@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const Cart = mongoose.model('Cart');
 const Product = mongoose.model('Product');
+const apiMessages = require('../config/messages');
 
 const ensureCartSessionId = (req, res) => {
     let sessionId = req.cookies?.cartSessionId || req.params.sessionid || req.body.sessionId;
@@ -28,7 +29,7 @@ const ensureCartSessionId = (req, res) => {
 const cartRead = (req, res) => {
     const sessionId = ensureCartSessionId(req, res);
     if (!sessionId) {
-        res.status(400).json({ "message": "Se requiere sessionId" });
+        res.status(400).json({ "message": apiMessages.cart.sessionRequired });
         return;
     }
     Cart
@@ -65,7 +66,7 @@ const cartAddItem = (req, res) => {
     const cantidad = req.body.cantidad || 1;
 
     if (!sessionId || !productId) {
-        res.status(400).json({ "message": "Se requieren sessionId y productId" });
+        res.status(400).json({ "message": apiMessages.cart.sessionAndProductRequired });
         return;
     }
 
@@ -74,7 +75,7 @@ const cartAddItem = (req, res) => {
         .exec()
         .then(product => {
             if (!product) {
-                res.status(404).json({ "message": "Producto no encontrado" });
+                res.status(404).json({ "message": apiMessages.cart.productNotFound });
                 return;
             }
 
@@ -133,7 +134,7 @@ const cartUpdateItem = (req, res) => {
     const cantidad = req.body.cantidad;
 
     if (!sessionId || !productId || cantidad === undefined) {
-        res.status(400).json({ "message": "Se requieren sessionId, productId y cantidad" });
+        res.status(400).json({ "message": apiMessages.cart.sessionProductAndQuantityRequired });
         return;
     }
 
@@ -141,13 +142,13 @@ const cartUpdateItem = (req, res) => {
         .exec()
         .then(cart => {
             if (!cart) {
-                res.status(404).json({ "message": "Carrito no encontrado" });
+                res.status(404).json({ "message": apiMessages.cart.notFound });
                 return;
             }
 
             const item = cart.items.find(item => item.productId.toString() === productId);
             if (!item) {
-                res.status(404).json({ "message": "Producto no encontrado en el carrito" });
+                res.status(404).json({ "message": apiMessages.cart.productNotInCart });
                 return;
             }
 
@@ -181,7 +182,7 @@ const cartRemoveItem = (req, res) => {
     const productId = req.body.productId;
 
     if (!sessionId || !productId) {
-        res.status(400).json({ "message": "Se requieren sessionId y productId" });
+        res.status(400).json({ "message": apiMessages.cart.sessionAndProductRequired });
         return;
     }
 
@@ -189,7 +190,7 @@ const cartRemoveItem = (req, res) => {
         .exec()
         .then(cart => {
             if (!cart) {
-                res.status(404).json({ "message": "Carrito no encontrado" });
+                res.status(404).json({ "message": apiMessages.cart.notFound });
                 return;
             }
 
@@ -217,7 +218,7 @@ const cartClear = (req, res) => {
     const sessionId = ensureCartSessionId(req, res);
 
     if (!sessionId) {
-        res.status(400).json({ "message": "Se requiere sessionId" });
+        res.status(400).json({ "message": apiMessages.cart.sessionRequired });
         return;
     }
 
@@ -229,7 +230,7 @@ const cartClear = (req, res) => {
     .exec()
     .then(cart => {
         if (!cart) {
-            res.status(404).json({ "message": "Carrito no encontrado" });
+            res.status(404).json({ "message": apiMessages.cart.notFound });
         } else {
             res.status(200).json(cart);
         }

@@ -35,7 +35,19 @@ const asesoriaList = (req, res) => {
         });
 };
 
+// ========== ELIMINAR UNA ASESORÍA ==========
+const asesoriaDelete = async (req, res) => {
+    try {
+        const asesoria = await Asesoria.findByIdAndDelete(req.params.id);
+        if (!asesoria) return res.status(404).json({ message: 'Asesoría no encontrada' });
+        res.status(200).json({ message: 'Asesoría eliminada' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error al eliminar asesoría' });
+    }
+};
+
 module.exports = {
     asesoriaCreate,
-    asesoriaList
+    asesoriaList,
+    asesoriaDelete
 };

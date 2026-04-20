@@ -14,20 +14,20 @@ block content
               h4.mb-0 Items en tu carrito
             .card-body
               each item in cart.items
-                .row.mb-4.align-items-center
-                  .col-md-2
+                .row.mb-4.align-items-center.cart-item-row.gy-2
+                  .col-4.col-md-2
                     img.img-fluid.rounded(src=item.imagen, alt=item.nombre, onerror="this.src='/images/placeholder.png'")
-                  .col-md-4
+                  .col-8.col-md-4
                     h5= item.nombre
                     p.text-muted $#{(item.precio).toFixed(2)} c/u
-                  .col-md-3
+                  .col-7.col-md-3
                     .input-group
                       button.btn.btn-outline-secondary.btn-sm(type='button', onclick=`updateQuantity('${item.productId}', ${item.cantidad - 1})`) -
                       input.form-control.text-center(type='number', value=item.cantidad, min='1', onchange=`updateQuantity('${item.productId}', this.value)`)
                       button.btn.btn-outline-secondary.btn-sm(type='button', onclick=`updateQuantity('${item.productId}', ${item.cantidad + 1})`) +
-                  .col-md-2.text-end
+                  .col-3.col-md-2.text-end
                     strong $#{(item.precio * item.cantidad).toFixed(2)}
-                  .col-md-1.text-end
+                  .col-2.col-md-1.text-end
                     button.btn.btn-outline-danger.btn-sm(type='button', onclick=`removeItem('${item.productId}')`)
                       i.fas.fa-trash
 
@@ -40,12 +40,12 @@ block content
                 strong Subtotal:
                 span $#{(cart.total).toFixed(2)}
               .d-flex.justify-content-between.mb-3
-                strong IVA (12%):
-                span $#{(cart.total * 0.12).toFixed(2)}
+                strong IVA (15%):
+                span $#{(cart.total * 0.15).toFixed(2)}
               hr
               .d-flex.justify-content-between.mb-4
                 strong.h5 Total:
-                span.h5 $#{ (cart.total * 1.12).toFixed(2) }
+                span.h5 $#{ (cart.total * 1.15).toFixed(2) }
               button.btn.btn-success.btn-lg.w-100 Proceder al pago
               button.btn.btn-outline-secondary.btn-lg.w-100.mt-2(type='button', onclick='clearCart()') Vaciar carrito
     else

@@ -11,11 +11,11 @@ block content
     img.hero-image(src='/images/gamer.png', alt='Medidor de velocidad', onerror="this.src='/images/placeholder.png'")
   
   // Sección Medidor de Velocidad
-  .py-5.bg-light
+  .py-5
     .container
       .row
         .col-lg-8.offset-lg-2
-          .speed-test-card#speed-test-card.bg-white.text-dark.p-5.rounded.shadow
+          .speed-test-card#speed-test-card.p-5.rounded
             h3.mb-4.text-center Medidor de Velocidad de Internet
             
             // Download Speed
@@ -49,7 +49,7 @@ block content
               button.btn.btn-primary.btn-lg#start-speed-test Iniciar Prueba de Velocidad
 
   // Sección de Servicios Principales
-  .services-section.py-5.bg-light
+  .services-section.py-5
     .container
       .row
         .col-12.text-center.mb-5
@@ -188,13 +188,14 @@ block content
             button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Cerrar
 
   // Call to Action
-  .cta-section.bg-light.py-5
+  .cta-section.py-5
     .container.text-center
       h3.mb-3 ¿Necesitas asesoramiento?
       p.lead Te ayudaremos a elegir el plan perfecto para ti
       a.btn.btn-success.btn-lg(href='/contacto') Solicitar Asesoría
       a.btn.btn-outline-success.btn-lg.ms-3(href='/cart') Ver Carrito
 
+  script(src='/javascripts/speedtest.js')
   script.
     document.addEventListener('DOMContentLoaded', function() {
       const startButton = document.getElementById('start-speed-test');
@@ -265,70 +266,65 @@ block content
         suggestionModal.show();
       }
 
-      startButton.addEventListener('click', async function() {
-        speedTestCard.classList.add('glow-green');
-        speedTestCard.classList.remove('glow-cyan');
-        startButton.disabled = true;
-        startButton.textContent = 'Midiendo...';
-        
-        // Resetear valores
+      let st = null;
+
+      startButton.addEventListener('click', function() {
+        // Si el test ya corre, lo detiene
+        if (st && st.getState() === 3) {
+          st.abort();
+          startButton.textContent = 'Iniciar Prueba de Velocidad';
+          startButton.disabled = false;
+          speedTestCard.classList.remove('glow-green');
+          speedTestCard.classList.add('glow-cyan');
+          return;
+        }
+
+        // Resetear UI
         downloadSpeed.textContent = '--';
         uploadSpeed.textContent = '--';
         ping.textContent = '--';
         downloadBar.style.width = '0%';
         uploadBar.style.width = '0%';
         pingBar.style.width = '0%';
-        
-        // Simulación de progreso
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-          progress += Math.random() * 30;
-          if (progress > 90) progress = 90;
-          downloadBar.style.width = progress + '%';
-          uploadBar.style.width = (progress * 0.8) + '%';
-          pingBar.style.width = (Math.min(progress * 0.6, 100)) + '%';
-        }, 200);
+        speedTestCard.classList.add('glow-green');
+        speedTestCard.classList.remove('glow-cyan');
+        startButton.textContent = 'Detener';
 
-        fetch('/speedtest')
-          .then(response => response.json())
-          .then(data => {
-            clearInterval(progressInterval);
-            
-            if (data.download && data.upload && data.ping) {
-              downloadSpeed.textContent = data.download;
-              uploadSpeed.textContent = data.upload;
-              ping.textContent = data.ping;
-              
-              // Animar barras a su valor final
-              const maxSpeed = Math.max(parseFloat(data.download), parseFloat(data.upload));
-              const downloadPercent = (parseFloat(data.download) / maxSpeed) * 100;
-              const uploadPercent = (parseFloat(data.upload) / maxSpeed) * 100;
-              const pingPercent = Math.min((150 - parseFloat(data.ping)) / 150 * 100, 100); // Menos ping = más barra
-              
-              downloadBar.style.width = downloadPercent + '%';
-              uploadBar.style.width = uploadPercent + '%';
-              pingBar.style.width = pingPercent + '%';
-              showSpeedSuggestion(parseFloat(data.download));
-            } else {
-              throw new Error(data.message || 'Error en speedtest');
-            }
-          })
-          .catch(error => {
-            console.error('Error al ejecutar speedtest:', error);
-            clearInterval(progressInterval);
-            downloadSpeed.textContent = 'Error';
-            uploadSpeed.textContent = 'Error';
-            ping.textContent = 'Error';
-            downloadBar.style.width = '0%';
-            uploadBar.style.width = '0%';
-            pingBar.style.width = '0%';
-          })
-          .finally(() => {
-            startButton.disabled = false;
-            startButton.textContent = 'Iniciar Prueba de Velocidad';
-            speedTestCard.classList.remove('glow-green');
-            speedTestCard.classList.add('glow-cyan');
-          });
+        st = new Speedtest();
+        st.setParameter('url_dl',    '/backend/garbage');
+        st.setParameter('url_ul',    '/backend/empty');
+        st.setParameter('url_ping',  '/backend/empty');
+        st.setParameter('url_getIp', '/backend/getIP');
+        st.setParameter('time_dl_max', 10);
+        st.setParameter('time_ul_max', 10);
+        st.setParameter('getIp_ispInfo', false);
+
+        st.onupdate = function(data) {
+          if (data.dlStatus) {
+            downloadSpeed.textContent = (parseFloat(data.dlStatus) / 1000).toFixed(2);
+            downloadBar.style.width = (data.dlProgress * 100).toFixed(0) + '%';
+          }
+          if (data.ulStatus) {
+            uploadSpeed.textContent = (parseFloat(data.ulStatus) / 1000).toFixed(2);
+            uploadBar.style.width = (data.ulProgress * 100).toFixed(0) + '%';
+          }
+          if (data.pingStatus) {
+            ping.textContent = parseFloat(data.pingStatus).toFixed(2);
+            pingBar.style.width = Math.min(data.pingProgress * 100, 100).toFixed(0) + '%';
+          }
+        };
+
+        st.onend = function(aborted) {
+          startButton.disabled = false;
+          startButton.textContent = 'Iniciar Prueba de Velocidad';
+          speedTestCard.classList.remove('glow-green');
+          speedTestCard.classList.add('glow-cyan');
+          if (!aborted && downloadSpeed.textContent !== '--') {
+            showSpeedSuggestion(parseFloat(downloadSpeed.textContent));
+          }
+        };
+
+        st.start();
       });
 
       // Código para añadir al carrito (si hay productos destacados)

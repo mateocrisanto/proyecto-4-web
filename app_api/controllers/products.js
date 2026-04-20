@@ -6,6 +6,7 @@
 
 const mongoose = require('mongoose');
 const Product = mongoose.model('Product');
+const apiMessages = require('../config/messages');
 
 // ========== LISTAR TODOS LOS PRODUCTOS ==========
 const productsList = (req, res) => {
@@ -47,7 +48,7 @@ const productsReadOne = (req, res) => {
             .exec()
             .then(product => {
                 if (!product) {
-                    res.status(404).json({ "message": "Producto no encontrado" });
+                    res.status(404).json({ "message": apiMessages.products.notFound });
                 } else {
                     res.status(200).json(product);
                 }
@@ -56,14 +57,14 @@ const productsReadOne = (req, res) => {
                 res.status(404).json(err);
             });
     } else {
-        res.status(404).json({ "message": "No se encontró productid en la solicitud" });
+        res.status(404).json({ "message": apiMessages.products.missingProductId });
     }
 };
 
 // ========== ACTUALIZAR UN PRODUCTO ==========
 const productsUpdateOne = (req, res) => {
     if (!req.params.productid) {
-        res.status(404).json({ "message": "Se requiere productid" });
+        res.status(404).json({ "message": apiMessages.products.productIdRequired });
         return;
     }
     Product
@@ -71,7 +72,7 @@ const productsUpdateOne = (req, res) => {
         .exec()
         .then(product => {
             if (!product) {
-                res.status(404).json({ "message": "productid no encontrado" });
+                res.status(404).json({ "message": apiMessages.products.productIdNotFound });
                 return;
             }
             product.nombre = req.body.nombre;
@@ -102,7 +103,7 @@ const productsDeleteOne = (req, res) => {
             .exec()
             .then(product => {
                 if (!product) {
-                    res.status(404).json({ "message": "Producto no encontrado" });
+                    res.status(404).json({ "message": apiMessages.products.notFound });
                 } else {
                     res.status(200).json(product);
                 }
@@ -111,7 +112,7 @@ const productsDeleteOne = (req, res) => {
                 res.status(404).json(err);
             });
     } else {
-        res.status(404).json({ "message": "No se encontró productid" });
+        res.status(404).json({ "message": apiMessages.products.missingProductIdShort });
     }
 };
 

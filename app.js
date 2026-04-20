@@ -3,12 +3,16 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const session = require('express-session');
 
 // modelo
 require('./app_api/models/db'); // incorporar el modelo de datos
 
 // routers
 const indexRouter = require('./app_server/routes/index');
+const authRouter = require('./app_server/routes/auth');
+const adminRouter = require('./app_server/routes/admin');
+const requireAuth = require('./app_server/middleware/requireAuth');
 // const usersRouter = require('./app_server/routes/users'); // Comentado - e-commerce
 const apiRouter = require('./app_api/routes/index'); // rutas para la REST API
 
@@ -24,10 +28,23 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// sesión de usuario
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'newtech-dev-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge: 8 * 60 * 60 * 1000  // 8 horas
+  }
+}));
+
 // cuando usar los ruteadores
-app.use('/', indexRouter);
+app.use('/api', apiRouter);                // API REST (sin auth — autenticación propia)
+app.use('/', authRouter);                  // /login, /register, /logout (sin auth)
+app.use('/admin', requireAuth, adminRouter); // panel admin — requiere sesión
+app.use('/', requireAuth, indexRouter);    // todo lo demás requiere sesión activa
 // app.use('/users', usersRouter); // Comentado - ahora es e-commerce
-app.use('/api', apiRouter); // cuando usar las rutas de la REST API
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

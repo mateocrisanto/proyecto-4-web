@@ -6,6 +6,8 @@ dotenv.config();
 
 require('./esquema_products');
 require('./esquema_cart');
+require('./esquema_auth');
+require('./esquema_services');
 
 const dbURI =
   process.env.MONGODB_URI ||

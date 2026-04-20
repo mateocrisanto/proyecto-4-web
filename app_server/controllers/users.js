@@ -9,16 +9,8 @@
  * 3. Muestran respuestas al usuario
  */
 
-// Módulo para hacer peticiones HTTP a la API REST
-const request = require('request');
-
-// ========== CONFIGURACIÓN DE AMBIENTES ==========
-let apiOptions = {
-  server: 'http://localhost:3000' // Servidor local para desarrollo
-};
-if (process.env.NODE_ENV === 'production') {
-  apiOptions.server = 'https://dw3-202520.herokuapp.com'; // Servidor en producción
-}
+const { requestApi } = require('../lib/apiClient');
+const siteContent = require('../config/siteContent');
 
 // ========== FUNCIÓN AUXILIAR: CONVERTIR A ARRAY ==========
 // Si recibe un valor simple, lo convierte a array
@@ -34,17 +26,15 @@ const toArray = (value) => {
 // Renderiza la página con el formulario para registrar un nuevo cliente
 const usersAdd = (req, res) => {
   res.render('usersCreate', { 
-    title: 'Registro de Cliente', 
-    message: 'Registra tu servicio de Internet, telefonía y canales internacionales' 
+        title: siteContent.users.createTitle,
+        message: siteContent.users.createMessage
   });
 };
 
 // ========== CONTROLADOR: PROCESAR REGISTRO DE CLIENTE ==========
 // POST /users/add
 // Recibe datos del formulario de registro y los envía a la API
-const usersDoAdd = (req, res) => {
-    const path = '/api/users';  // Endpoint para crear nuevo cliente
-    
+const usersDoAdd = async (req, res) => {
     // Preparar los datos del cliente en formato JSON
     const postData = {
         nombre: req.body.nombre,
@@ -61,47 +51,44 @@ const usersDoAdd = (req, res) => {
             internationalChannels: toArray(req.body.internationalChannels) // Canales seleccionados
         }
     };
-    
-    console.log('Post data: ', postData); // Log para debugging
-    
-    // Configurar la petición HTTP POST a la API
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'POST',         // Crear nuevo recurso
-        json: postData           // Enviar datos convertidos a JSON
-    };
-    
-    console.log('Request options: ', requestOptions);
-    
-    // Enviar petición a la API
-    request(requestOptions, (err, response, body) => {
-        if (!err && response.statusCode === 201) {
-            // Éxito: cliente creado correctamente
-            console.log('Body: ', body);
+
+    try {
+        const { ok, status, body } = await requestApi('/api/users', {
+            method: 'POST',
+            body: JSON.stringify(postData)
+        });
+
+        if (ok && status === 201) {
             res.render('usersCreate', {
-                message: 'Cliente registrado exitosamente. ID: ' + body._id, // Mostrar ID generado
-                title: 'Registro de Cliente',
+                message: siteContent.users.createSuccessMessage(body?._id || ''),
+                title: siteContent.users.createTitle,
                 action: '/users/add',
                 submitText: 'Enviar registro',
                 user: {}
             });
-        } else {
-            // Error: mostrar página de error
-            console.log('Error: ', err || body);
-            res.render('error', {
-                message: 'Error al registrar el cliente', 
-                error: {status: response && response.statusCode}
-            });
+            return;
         }
-    });
+
+        console.log('Error al registrar cliente: ', status, body);
+        res.render('error', {
+            message: siteContent.users.registrationError,
+            error: { status }
+        });
+    } catch (err) {
+        console.log('Error al registrar cliente: ', err);
+        res.render('error', {
+            message: siteContent.users.registrationError,
+            error: { status: 500 }
+        });
+    }
 };
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR FORMULARIO DE USUARIO ==========
 // Reutiliza la vista de creación para edición y creación con valores dinámicos
 const renderUsersForm = (req, res, responseBody, action, submitText) => {
     res.render('usersCreate', {
-        title: action.includes('/edit/') ? 'Editar Cliente' : 'Registro de Cliente',
-        message: action.includes('/edit/') ? 'Modifica los datos del cliente' : 'Registra tu servicio de Internet, telefonía y canales internacionales',
+        title: action.includes('/edit/') ? siteContent.users.editTitle : siteContent.users.createTitle,
+        message: action.includes('/edit/') ? siteContent.users.editMessage : siteContent.users.createMessage,
         action,
         submitText,
         user: responseBody
@@ -110,30 +97,28 @@ const renderUsersForm = (req, res, responseBody, action, submitText) => {
 
 // ========== CONTROLADOR: OBTENER CLIENTE PARA EDITAR ==========
 // GET /users/edit/:userId
-const usersEdit = (req, res) => {
-    const path = `/api/users/${req.params.userId}`; // Endpoint para obtener cliente específico
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'GET',
-        json: true
-    };
-    request(requestOptions, (err, response, body) => {
-        if (err) {
-            console.log('Error: ', err);
-            res.render('error', {message: 'Error al buscar el cliente', error: {status: response && response.statusCode}});
-        } else if (response.statusCode === 200 && body) {
+const usersEdit = async (req, res) => {
+    try {
+        const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
+            method: 'GET'
+        });
+
+        if (ok && body) {
             renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios');
-        } else {
-            console.log('Status code: ', response.statusCode);
-            res.render('error', {message: 'Cliente no encontrado', error: {status: response.statusCode}});
+            return;
         }
-    });
+
+        console.log('Status code: ', status);
+        res.render('error', { message: siteContent.users.notFound, error: { status } });
+    } catch (err) {
+        console.log('Error: ', err);
+        res.render('error', { message: siteContent.users.searchError, error: { status: 500 } });
+    }
 };
 
 // ========== CONTROLADOR: ENVIAR CAMBIOS DE EDICIÓN ==========
 // POST /users/edit/:userId
-const doUsersEdit = (req, res) => {
-    const path = `/api/users/${req.params.userId}`;  // Endpoint para actualizar cliente
+const doUsersEdit = async (req, res) => {
     const postData = {
         nombre: req.body.nombre,
         apellido: req.body.apellido,
@@ -148,31 +133,38 @@ const doUsersEdit = (req, res) => {
             internationalChannels: toArray(req.body.internationalChannels)
         }
     };
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'PUT',
-        json: postData
-    };
-    request(requestOptions, (err, response, body) => {
-        if (!err && response.statusCode === 200) {
-            console.log('Body: ', body);
+
+    try {
+        const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(postData)
+        });
+
+        if (ok && status === 200) {
             renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios');
-        } else {
-            console.log('Error: ', err || body);
-            res.render('error', {
-                message: 'Error al actualizar el cliente', 
-                error: {status: response && response.statusCode}
-            });
+            return;
         }
-    });
+
+        console.log('Error: ', status, body);
+        res.render('error', {
+            message: siteContent.users.updateError,
+            error: { status }
+        });
+    } catch (err) {
+        console.log('Error: ', err);
+        res.render('error', {
+            message: siteContent.users.updateError,
+            error: { status: 500 }
+        });
+    }
 };
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR PÁGINA DE ELIMINACIÓN ==========
 // Muestra los detalles del cliente a eliminar para confirmación
 const renderUsersDelete = (req, res, responseBody) => {
     res.render('usersDelete', {
-        title: 'Eliminación de Clientes',
-        message: 'Eliminar cliente registrado',
+        title: siteContent.users.deleteTitle,
+        message: siteContent.users.deleteMessage,
         nombre: responseBody.nombre,
         apellido: responseBody.apellido,
         identificacion: responseBody.identificacion,
@@ -187,57 +179,53 @@ const renderUsersDelete = (req, res, responseBody) => {
 // ========== CONTROLADOR: OBTENER CLIENTE PARA ELIMINAR ==========
 // GET /users/delete/:userId
 // Obtiene datos del cliente desde la API y muestra página de confirmación
-const usersDelete = (req, res) => {
-    const path = `/api/users/${req.params.userId}`; // Endpoint para obtener cliente específico
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'GET',
-        json: true
-    };
-    request(requestOptions, (err, response, body) => {
-        if (err) {
-            console.log('Error: ', err);
-            res.render('error', {message: 'Error al buscar el cliente', error: {status: response && response.statusCode}});
-        } else if (response.statusCode === 200 && body) {
-            // Cliente encontrado: mostrar página de confirmación
+const usersDelete = async (req, res) => {
+    try {
+        const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
+            method: 'GET'
+        });
+
+        if (ok && body) {
             renderUsersDelete(req, res, body);
-        } else {
-            console.log('Status code: ', response.statusCode);
-            res.render('error', {message: 'Cliente no encontrado', error: {status: response.statusCode}});
+            return;
         }
-    });
+
+        console.log('Status code: ', status);
+        res.render('error', { message: siteContent.users.notFound, error: { status } });
+    } catch (err) {
+        console.log('Error: ', err);
+        res.render('error', { message: siteContent.users.searchError, error: { status: 500 } });
+    }
 };
 
 // ========== CONTROLADOR: CONFIRMAR ELIMINACIÓN DE CLIENTE ==========
 // POST /users/delete/:userId
 // Envía petición DELETE a la API para eliminar el cliente
-const doUsersDelete = (req, res) => {
-    const path = `/api/users/${req.params.userId}`;  // Endpoint para eliminar cliente
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'DELETE',       // Usar método DELETE
-        json: {}
-    };
-    request(requestOptions, (err, response, body) => {
-        if (err) {
-            console.log('Error: ', err);
-            res.render('error', {message: 'Error al eliminar el cliente', error: {status: response && response.statusCode}});
-        } else if (response.statusCode === 204) {
-            // Éxito: cliente eliminado, redirigir a lista de clientes
-            console.log('Cliente eliminado exitosamente');
-            res.redirect('/users');
-        } else {
-            console.log('Status code: ', response.statusCode);
-            res.render('error', {message: 'Error al eliminar el cliente', error: {status: response.statusCode}});
+const doUsersDelete = async (req, res) => {
+    try {
+        const { ok, status } = await requestApi(`/api/users/${req.params.userId}`, {
+            method: 'DELETE'
+        });
+
+        if (ok && status === 204) {
+        console.log(siteContent.users.deleteSuccess);
+        res.redirect('/users');
+        return;
         }
-    });
+
+        console.log('Status code: ', status);
+        res.render('error', { message: siteContent.users.deleteError, error: { status } });
+    } catch (err) {
+        console.log('Error: ', err);
+        res.render('error', { message: siteContent.users.deleteError, error: { status: 500 } });
+    }
 };
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR PÁGINA DE PERFIL ==========
 // Muestra los datos completos del cliente
 const renderUserProfile = (req, res, responseBody) => {
     res.render('perfil', {
-        title: 'Perfil de Cliente',
+        title: siteContent.users.profileTitle,
         user: responseBody  // Pasar todo el objeto del cliente a la vista
     });
 };
@@ -245,25 +233,23 @@ const renderUserProfile = (req, res, responseBody) => {
 // ========== CONTROLADOR: VER PERFIL DEL CLIENTE ==========
 // GET /users/profile/:userId
 // Obtiene los datos del cliente desde la API y muestra su perfil
-const userProfile = (req, res) => {
-    const path = `/api/users/${req.params.userId}`; // Endpoint para obtener cliente específico
-    const requestOptions = {
-        url: `${apiOptions.server}${path}`,
-        method: 'GET',
-        json: true
-    };
-    request(requestOptions, (err, response, body) => {
-        if (err) {
-            console.log('Error: ', err);
-            res.render('error', {message: 'Error al cargar el perfil', error: {status: response && response.statusCode}});
-        } else if (response.statusCode === 200 && body) {
-            // Éxito: mostrar perfil del cliente
+const userProfile = async (req, res) => {
+    try {
+        const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
+            method: 'GET'
+        });
+
+        if (ok && body) {
             renderUserProfile(req, res, body);
-        } else {
-            console.log('Status code: ', response.statusCode);
-            res.render('error', {message: 'Cliente no encontrado', error: {status: response.statusCode}});
+            return;
         }
-    });
+
+        console.log('Status code: ', status);
+        res.render('error', { message: siteContent.users.notFound, error: { status } });
+    } catch (err) {
+        console.log('Error: ', err);
+        res.render('error', { message: siteContent.users.profileError, error: { status: 500 } });
+    }
 };
 
 module.exports = {
