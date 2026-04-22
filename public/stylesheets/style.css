@@ -1,4 +1,10 @@
-/* ========== IMPORTAR FUENTES PERSONALIZADAS ========== */
+/* ========== IMPORTAR FUENTES PERSONALIZADAS ==========
+   Tres fuentes locales almacenadas en public/fonts/:
+   - 'Platinum Sign'       → usada en el brand (.brand-name) y títulos hero
+                              da el look de empresa premium / agencia digital
+   - 'TT Octosquares'      → fuente bold para headings (h1-h6)
+   - 'TT Octosquares Light'→ fuente light para subtítulos y cuerpo de texto
+   ===================================================== */
 @font-face {
     font-family: 'Platinum Sign';
     src: url('/fonts/Platinum Sign.ttf') format('truetype');
@@ -14,7 +20,27 @@
     src: url('/fonts/TT Octosquares Trial Light.ttf') format('truetype');
 }
 
-/* ========== PALETA DE COLORES ========== */
+/* ========== PALETA DE COLORES ==========
+   Las variables CSS en :root definen TODA la paleta del sitio.
+   Se definen aquí para cambiar el diseño entero desde un solo lugar.
+
+   PALETA PRINCIPAL (tema juvenil / tech / vanguardista):
+     --c-cyan-light  #71E4F4  → azul claro eléctrico (textos de acento, links)
+     --c-cyan        #11C1F5  → azul cian vibrante (botones primarios, bordes activos)
+     --c-purple      #D374FF  → púrpura neón (admin, gradientes, badges)
+     --c-pink        #F491BF  → rosa neón (alertas, hover, gradiente de botón)
+     --c-white       #FFFFFF  → blanco puro (texto en fondos oscuros)
+
+   FONDOS OSCUROS (dark theme):
+     --c-dark-bg       #0d0d14  → fondo global del body (negro casi puro con tinte azul)
+     --c-dark-surface  #13131f  → superficies secundarias (ligeramente más claro)
+     --c-dark-card     #1a1a2e  → fondo de tarjetas (.card) y modales
+     --c-dark-border   rgba(...)→ bordes sutiles con transparencia
+
+   OVERRIDES DE BOOTSTRAP:
+   Se sobreescriben las variables CSS de Bootstrap 5 para que todos los
+   componentes (badges, alerts, buttons, forms, etc.) usen la paleta automáticamente.
+   ===================================================== */
 :root {
     --c-cyan-light: #71E4F4;
     --c-cyan:       #11C1F5;
@@ -126,7 +152,14 @@ a:hover {
     outline: 0;
 }
 
-/* ========== NAVBAR CON BORDE RGB ANIMADO ========== */
+/* ========== NAVBAR CON BORDE RGB ANIMADO ==========
+   Un degradado de los 4 colores de la paleta aparece como línea
+   inferior del navbar. La animación desplaza el gradiente de izquierda
+   a derecha en un ciclo de 4 segundos, creando el efecto "RGB".
+
+   Técnica: pseudo-elemento ::after con background-size: 300% y
+   animation que mueve background-position de 0% a 100%.
+   ===================================================== */
 .navbar {
     position: relative;
 }
@@ -169,7 +202,11 @@ a:hover {
     color: #fff !important;
 }
 
-/* ========== HERO SECTION - FULL WIDTH ========== */
+/* ========== HERO SECTION - FULL WIDTH ==========
+   La sección hero ocupa el 100% del ancho y tiene la imagen decorativa
+   posicionada de forma absoluta a la derecha, superpuesta al contenido.
+   En móviles (< 768px) la imagen se oculta para no tapar el texto.
+   ===================================================== */
 .hero-section {
     width: 100%;
     position: relative;
@@ -242,7 +279,11 @@ a:hover {
     }
 }
 
-/* ========== PRODUCTO CARDS ========== */
+/* ========== PRODUCTO CARDS ==========
+   Las tarjetas de productos tienen una altura mínima para que sean
+   consistentes aunque el texto varíe. El efecto hover las eleva
+   ligeramente con translateY y agrega una sombra de resplandor cian.
+   ===================================================== */
 .product-card {
     min-height: 420px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -328,7 +369,21 @@ a:hover {
     }
 }
 
-/* ========== MEDIDOR DE VELOCIDAD CON BARRAS DE PROGRESO ========== */
+/* ========== MEDIDOR DE VELOCIDAD CON BARRAS DE PROGRESO ==========
+   La tarjeta del speedtest (.speed-test-card) tiene un borde cian
+   tenue en reposo. Al iniciar el test, el JS de index.pug agrega
+   las clases .glow-cyan y .glow-green para animar el resplandor.
+
+   Cada métrica (descarga, carga, ping) tiene su propia barra de progreso
+   con un gradiente de color diferente para distinguirlas visualmente:
+     - Descarga: azul cian → cyan-light
+     - Carga:    púrpura → rosa
+     - Ping:     rosa → cyan-light
+
+   El valor numérico (.speed-result-value) se actualiza cada ~200ms
+   por el callback onupdate de LibreSpeed (los valores vienen en Kbps,
+   se dividen entre 1000 y se muestran con 2 decimales en Mbps).
+   ===================================================== */
 .speed-test-card {
     min-height: auto;
     background-color: var(--c-dark-card) !important;
@@ -445,6 +500,25 @@ a:hover {
 
 /* =================================================================
    BOTONES PILL — TRANSPARENTES CON GRADIENTE ANIMADO AL HOVER
+   =================================================================
+   DISEÑO DE BOTONES (sistema completo):
+
+   Estado normal:
+     - Forma pill (border-radius: 50px) — sin importar la variante Bootstrap
+     - Fondo transparente (solo el borde de color indica la variante)
+     - El color del borde y del texto depende de la variante (.btn-primary,
+       .btn-danger, etc.) usando los colores de la paleta personalizada
+
+   Estado hover / focus:
+     - El pseudo-elemento ::before (position: absolute, inset: 0) se vuelve
+       visible (opacity: 0 → 1)
+     - ::before contiene el gradiente de los 4 colores animado con @keyframes
+       btn-gradient (misma técnica que el borde del navbar)
+     - El texto cambia a #0d0d14 (fondo oscuro) para contraste sobre el gradiente
+     - Se agrega box-shadow con resplandor cian
+
+   z-index: el contenido del botón va sobre ::before (z-index: 0 en .btn,
+   z-index: -1 en ::before) para que el texto sea visible durante la animación.
    ================================================================= */
 @keyframes btn-gradient {
     0%   { background-position: 0% center; }
@@ -538,6 +612,24 @@ a:hover {
 
 /* =================================================================
    TEMA OSCURO — OVERRIDES BOOTSTRAP
+   =================================================================
+   Bootstrap 5 con data-bs-theme='dark' ya aplica muchos estilos oscuros,
+   pero estos overrides ajustan los componentes para que usen exactamente
+   la paleta del proyecto (#0d0d14, #1a1a2e, etc.) en lugar de los
+   grises genéricos de Bootstrap.
+
+   Componentes sobreescritos:
+     - .bg-light / .bg-white → fondo oscuro (--c-dark-surface)
+     - .bg-primary           → gradiente oscuro diagonal (sección hero)
+     - .navbar               → casi-negro con blur backdrop
+     - .card                 → fondo --c-dark-card
+     - .form-control         → fondo oscuro + borde cian al enfocar
+     - .badge.*              → gradientes de los colores de la paleta
+     - .alert-*              → fondos semitransparentes con borde de color
+     - .modal-content        → fondo --c-dark-card
+     - .progress             → track casi transparente
+     - .carousel-indicators  → puntos de colores de la paleta
+     - .navbar-toggler-icon  → SVG hamburguesa en color cian
    ================================================================= */
 .bg-light,
 .bg-white {

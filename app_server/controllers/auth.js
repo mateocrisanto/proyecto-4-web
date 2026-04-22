@@ -1,3 +1,19 @@
+/**
+ * CONTROLLERS/AUTH.JS — CONTROLADORES DE AUTENTICACIÓN DEL SERVIDOR
+ * ===================================================================
+ * Maneja el ciclo completo de autenticación de usuarios:
+ * mostrar formularios, procesar datos, crear/destruir sesiones.
+ *
+ * PATRÓN: No accede a MongoDB directamente. En su lugar llama a la
+ * REST API interna (/api/auth/*) via requestApi(). Esto mantiene la
+ * separación entre capa de presentación y capa de datos.
+ *
+ * SESIÓN: req.session.user almacena { _id, username, role } tras login.
+ *   - role 'user'  → acceso normal al sitio
+ *   - role 'admin' → acceso normal + panel /admin/*
+ *   - role 'guest' → acceso temporal sin cuenta (sin _id real)
+ */
+
 const { requestApi } = require('../lib/apiClient');
 
 // GET /login — muestra el formulario de login
@@ -88,12 +104,13 @@ const doRegister = async (req, res) => {
     }
 };
 
-// GET /logout — destruye la sesión y redirige al login
+// GET /logout — destruye la sesión por completo y redirige al login
 const logout = (req, res) => {
     req.session.destroy(() => res.redirect('/login'));
 };
 
-// GET /guest — acceso sin cuenta (sesión de invitado)
+// GET /guest — crea una sesión temporal de invitado sin necesidad de cuenta.
+// El rol 'guest' da acceso al sitio pero no a funciones sensibles como el perfil.
 const guestAccess = (req, res) => {
     req.session.user = { _id: null, username: 'Invitado', role: 'guest' };
     req.session.save(() => res.redirect('/'));

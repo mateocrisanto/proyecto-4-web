@@ -1,34 +1,61 @@
+/**
+ * CONTROLLERS/ADMIN.JS — CONTROLADORES DEL PANEL DE ADMINISTRACIÓN
+ * ==================================================================
+ * Contiene toda la lógica del panel privado /admin/*:
+ *   - requireAdmin: middleware de verificación de rol
+ *   - CRUD de Productos (con subida de imagen via multer)
+ *   - CRUD de Servicios
+ *   - Gestión de Asesorías (ver + eliminar)
+ *   - Gestión de Usuarios (ver + eliminar)
+ *
+ * PATRÓN: Igual que otros controladores del servidor, usa requestApi()
+ * para hablar con la REST API. No importa modelos Mongoose directamente.
+ *
+ * SUBIDA DE IMÁGENES (multer):
+ *   - Destino: public/images/product_<timestamp>.<ext>
+ *   - La ruta guardada en DB es: /images/product_<timestamp>.<ext>
+ *   - Esta ruta sirve directamente como atributo src de <img>
+ *   - Tamaño máximo: 5 MB | Formatos: jpg, jpeg, png, webp, gif
+ *   - Si no se sube archivo, se usa req.body.imagenUrl o un placeholder
+ */
+
 const { requestApi } = require('../lib/apiClient');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Configurar multer para subida de imágenes de productos
+// ── CONFIGURACIÓN DE MULTER (subida de imágenes) ──────────────────────────────
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
+        // Guardar en public/images/ — carpeta servida estáticamente por Express
         const dest = path.join(__dirname, '../../public/images');
         if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
         cb(null, dest);
     },
     filename: (req, file, cb) => {
+        // Nombre único con timestamp para evitar colisiones
         const ext = path.extname(file.originalname).toLowerCase();
         cb(null, `product_${Date.now()}${ext}`);
     }
 });
 const fileFilter = (req, file, cb) => {
+    // Solo aceptar formatos de imagen comunes
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, allowed.includes(ext));
 };
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
 
-// ========== MIDDLEWARE: SOLO ADMIN ==========
+// ── MIDDLEWARE: SOLO ADMIN ────────────────────────────────────────────────────
+// Se aplica en router.use() en routes/admin.js, DESPUÉS de requireAuth.
+// Si el usuario tiene sesión pero no es admin, recibe un 403.
 const requireAdmin = (req, res, next) => {
     if (req.session?.user?.role === 'admin') return next();
     res.status(403).render('error', { message: 'Acceso restringido a administradores', error: { status: 403 } });
 };
 
-// ========== PRODUCTOS ==========
+// ── PRODUCTOS ────────────────────────────────────────────────────────────────
+// Gestión del catálogo de productos visible en /products
 
 // GET /admin/products
 const adminProductsGet = async (req, res) => {
@@ -72,7 +99,8 @@ const adminProductsDelete = async (req, res) => {
     res.redirect('/admin/products');
 };
 
-// ========== SERVICIOS ==========
+// ── SERVICIOS ────────────────────────────────────────────────────────────────
+// Gestión de planes (internet, telefonía, celular, canales) visibles en /servicios
 
 // GET /admin/services
 const adminServicesGet = async (req, res) => {
@@ -107,7 +135,9 @@ const adminServicesDelete = async (req, res) => {
     res.redirect('/admin/services');
 };
 
-// ========== ASESORÍAS ==========
+// ── ASESORÍAS ────────────────────────────────────────────────────────────────
+// Solicitudes de contacto enviadas por clientes desde /contacto
+// Solo lectura + eliminación (no se pueden crear desde admin)
 
 // GET /admin/asesorias
 const adminAsesoriasGet = async (req, res) => {
@@ -131,7 +161,9 @@ const adminAsesoriasDelete = async (req, res) => {
     res.redirect('/admin/asesorias');
 };
 
-// ========== USUARIOS ==========
+// ── USUARIOS ─────────────────────────────────────────────────────────────────
+// Lista todos los usuarios registrados. Los admins no pueden eliminarse a sí mismos
+// (protección implementada en la vista admin_users.pug)
 
 // GET /admin/users
 const adminUsersGet = async (req, res) => {

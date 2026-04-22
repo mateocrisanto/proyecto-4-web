@@ -1,5 +1,21 @@
+/**
+ * CONTROLLERS/PROFILE.JS — CONTROLADOR DE PERFIL DE USUARIO
+ * ===========================================================
+ * Gestiona la página /perfil donde el usuario puede cambiar
+ * su nombre de usuario y/o contraseña.
+ *
+ * FLUJO DE ACTUALIZACIÓN:
+ *   1. El formulario envía: username (nuevo), currentPassword, newPassword
+ *   2. profileUpdate llama a PUT /api/auth/profile/:id via requestApi()
+ *   3. La API verifica currentPassword con bcrypt antes de actualizar
+ *   4. Si tiene éxito, se actualiza req.session.user.username para que
+ *      el navbar refleje el nuevo nombre sin necesidad de re-login
+ *
+ * NOTA: Los usuarios invitados (role === 'guest') no tienen _id real,
+ * por lo que la vista perfil.pug les muestra un mensaje en lugar del formulario.
+ */
+
 const { requestApi } = require('../lib/apiClient');
-const bcrypt = require('bcryptjs');
 
 // GET /perfil
 const profileGet = async (req, res) => {

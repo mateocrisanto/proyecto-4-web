@@ -1,0 +1,681 @@
+================================================================================
+  NEW TECH ISP — DOCUMENTACIÓN TÉCNICA COMPLETA
+  Proyecto: Plataforma web para proveedor de servicios de internet (ISP)
+  Stack:    Node.js + Express + Pug + MongoDB Atlas + Bootstrap 5
+================================================================================
+
+ÍNDICE
+------
+  1.  Resumen general del proyecto
+  2.  Estructura de carpetas
+  3.  Dependencias y variables de entorno
+  4.  Cómo ejecutar el proyecto
+  5.  Arquitectura: separación de capas
+  6.  Base de datos: modelos MongoDB
+  7.  API REST interna (/api/*)
+  8.  Flujo de autenticación completo
+  9.  Sistema de sesiones
+  10. Panel de administración
+  11. Medidor de velocidad (LibreSpeed)
+  12. Carrito de compras
+  13. Servicios e Asesorías
+  14. Sistema de diseño (CSS)
+  15. Flujo completo de una petición HTTP
+  16. Archivos importantes y su función
+
+
+================================================================================
+1. RESUMEN GENERAL DEL PROYECTO
+================================================================================
+
+New Tech es una aplicación web de e-commerce / portal de servicios para un ISP
+(proveedor de internet). Permite a los clientes:
+  - Ver y contratar planes de internet, telefonía, celular y canales
+  - Explorar y comprar productos del catálogo
+  - Medir su velocidad de internet en tiempo real (integración con LibreSpeed)
+  - Contactar con un asesor mediante formulario
+  - Gestionar su cuenta (cambiar usuario y contraseña)
+
+Y a los administradores:
+  - Gestionar el catálogo de productos (CRUD + subida de imágenes)
+  - Gestionar los planes de servicios (CRUD)
+  - Ver y eliminar solicitudes de asesoría
+  - Ver y eliminar usuarios registrados
+
+
+================================================================================
+2. ESTRUCTURA DE CARPETAS
+================================================================================
+
+ISP_proyedcto/
+│
+├── app.js                    ← Punto de entrada: configura Express, sesiones y routers
+├── bin/www                   ← Servidor HTTP: lee PORT y arranca app.js
+├── package.json              ← Dependencias del proyecto
+├── Procfile                  ← Para despliegue en Heroku / Railway
+├── populate.js               ← Script para poblar productos de prueba en MongoDB
+├── seed_admin.js             ← Script para crear el usuario admin 'mateo'
+├── DOCUMENTACION.txt         ← Este archivo
+│
+├── app_api/                  ← CAPA DE DATOS (REST API interna)
+│   ├── config/
+│   │   └── messages.js       ← Mensajes de error/éxito centralizados
+│   ├── controllers/
+│   │   ├── auth.js           ← Lógica de registro, login, perfil y usuarios
+│   │   ├── products.js       ← CRUD de productos
+│   │   ├── services.js       ← CRUD de planes de servicios
+│   │   ├── asesorias.js      ← CRUD de solicitudes de asesoría
+│   │   └── cart.js           ← Lógica del carrito (basado en sesión de cookie)
+│   ├── models/
+│   │   ├── db.js             ← Conexión a MongoDB Atlas con Mongoose
+│   │   ├── esquema_auth.js   ← Modelo de usuarios autenticados
+│   │   ├── esquema_products.js ← Modelo de productos
+│   │   ├── esquema_services.js ← Modelo de planes de servicios
+│   │   ├── esquema_cart.js   ← Modelo del carrito
+│   │   └── esquema_asesorias.js ← Modelo de solicitudes de asesoría
+│   └── routes/
+│       └── index.js          ← Define todas las rutas /api/*
+│
+├── app_server/               ← CAPA DE PRESENTACIÓN (HTML renderizado con Pug)
+│   ├── config/
+│   │   └── siteContent.js    ← Constantes de UI: títulos, planes estáticos, info de contacto
+│   ├── controllers/
+│   │   ├── main.js           ← Controladores de páginas principales (home, products, cart, etc.)
+│   │   ├── auth.js           ← Login, registro, logout, acceso de invitado
+│   │   ├── admin.js          ← Panel de administración + multer (subida de imágenes)
+│   │   ├── profile.js        ← Ver y actualizar perfil del usuario
+│   │   └── speedtest_backend.js ← Endpoints backend de LibreSpeed
+│   ├── lib/
+│   │   └── apiClient.js      ← Cliente axios para llamadas internas al /api
+│   ├── middleware/
+│   │   └── requireAuth.js    ← Protege rutas: redirige a /login si no hay sesión
+│   ├── routes/
+│   │   ├── index.js          ← Rutas de páginas principales (requieren sesión)
+│   │   ├── auth.js           ← Rutas públicas: /login, /register, /logout, /guest
+│   │   └── admin.js          ← Rutas del panel /admin/* (requieren rol admin)
+│   └── views/                ← Plantillas Pug (HTML dinámico)
+│       ├── layout.pug        ← Base de todas las páginas: navbar, footer
+│       ├── auth_layout.pug   ← Base para login/register: sin navbar, centrado
+│       ├── index.pug         ← Página de inicio: hero, speedtest, servicios, productos
+│       ├── products.pug      ← Catálogo de productos con carrito
+│       ├── cart.pug          ← Carrito de compras con IVA 15%
+│       ├── services.pug      ← Planes de servicios agrupados por categoría
+│       ├── contact.pug       ← Formulario de asesoría
+│       ├── perfil.pug        ← Formulario de cambio de usuario/contraseña
+│       ├── login.pug         ← Formulario de inicio de sesión
+│       ├── register.pug      ← Formulario de registro de cuenta
+│       ├── admin_products.pug    ← Panel admin: gestión de productos
+│       ├── admin_services.pug    ← Panel admin: gestión de servicios
+│       ├── admin_asesorias.pug   ← Panel admin: ver/eliminar asesorías
+│       ├── admin_users.pug       ← Panel admin: ver/eliminar usuarios
+│       ├── information.pug   ← Página informativa
+│       └── error.pug         ← Página de error genérica
+│
+├── public/                   ← Archivos estáticos servidos directamente
+│   ├── stylesheets/
+│   │   └── style.css         ← CSS principal: paleta, botones, tema oscuro, responsive
+│   ├── javascripts/
+│   │   ├── speedtest.js      ← LibreSpeed: lógica del medidor (Federico Dossena, LGPLv3)
+│   │   └── speedtest_worker.js ← Web Worker de LibreSpeed (corre en hilo separado)
+│   ├── images/               ← Imágenes de productos subidas por el admin
+│   └── fonts/                ← Fuentes locales: Platinum Sign, TT Octosquares
+│
+└── frontend/public/          ← Carpeta alternativa de assets (no usada activamente)
+
+
+================================================================================
+3. DEPENDENCIAS Y VARIABLES DE ENTORNO
+================================================================================
+
+DEPENDENCIAS PRINCIPALES (package.json):
+  express          5.2.1   ← Framework web principal
+  pug              3.0.3   ← Motor de plantillas HTML
+  mongoose         9.1.5   ← ODM para MongoDB
+  bcryptjs         ~       ← Hash seguro de contraseñas (12 rounds)
+  express-session  ~       ← Manejo de sesiones HTTP
+  axios            ~       ← Cliente HTTP para llamadas internas al /api
+  multer           ~       ← Subida de archivos (imágenes de productos)
+  dotenv           ~       ← Variables de entorno desde archivo .env
+  morgan           ~       ← Logger de peticiones HTTP
+  cookie-parser    ~       ← Parsear cookies
+
+VARIABLES DE ENTORNO (crear archivo .env en la raíz):
+  PORT=3000                         ← Puerto del servidor (por defecto 3000)
+  MONGODB_URI=mongodb+srv://...     ← URI de conexión a MongoDB Atlas
+  SESSION_SECRET=clave-secreta      ← Secreto para firmar las cookies de sesión
+  API_SERVER=http://localhost:3000  ← (Opcional) URL base para llamadas internas
+  API_TIMEOUT_MS=10000              ← (Opcional) Timeout en ms para llamadas a la API
+  NODE_ENV=production               ← En producción cambia la URL base de la API
+
+
+================================================================================
+4. CÓMO EJECUTAR EL PROYECTO
+================================================================================
+
+1. Instalar dependencias:
+   npm install
+
+2. Crear archivo .env con las variables de entorno (ver sección 3)
+
+3. (Primera vez) Crear el usuario administrador:
+   node seed_admin.js
+   Esto crea el usuario 'mateo' con contraseña 'admin' y rol 'admin' en MongoDB.
+
+4. (Opcional) Poblar productos de prueba:
+   node populate.js
+
+5. Iniciar el servidor:
+   npm start        ← Producción (usa PORT del entorno)
+   npm run dev      ← Desarrollo (si está configurado nodemon)
+   node ./bin/www   ← Manual
+
+6. Abrir en el navegador:
+   http://localhost:3000
+   La primera página será el formulario de login.
+
+
+================================================================================
+5. ARQUITECTURA: SEPARACIÓN DE CAPAS
+================================================================================
+
+La aplicación sigue una arquitectura de DOS CAPAS dentro del mismo proceso:
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    NAVEGADOR (cliente)                       │
+    │   Solicita páginas HTML, archivos estáticos y llama /api     │
+    └─────────────────────┬───────────────────────────────────────┘
+                          │ HTTP
+    ┌─────────────────────▼───────────────────────────────────────┐
+    │                 CAPA DE PRESENTACIÓN (app_server/)           │
+    │                                                              │
+    │  routes/  →  controllers/  →  apiClient.js  →  views/.pug   │
+    │                                     │                        │
+    │  Recibe peticiones del navegador,    │ HTTP interno           │
+    │  llama a la API interna via axios,   │ (localhost:PORT)       │
+    │  renderiza HTML con Pug.             │                        │
+    └─────────────────────────────────────┼──────────────────────┘
+                                          │
+    ┌─────────────────────────────────────▼──────────────────────┐
+    │                  CAPA DE DATOS (app_api/)                   │
+    │                                                              │
+    │  routes/  →  controllers/  →  models/ (Mongoose)            │
+    │                                     │                        │
+    │  Recibe peticiones del servidor      │ Driver MongoDB        │
+    │  (y también del navegador directamente para el carrito),     │
+    │  accede a MongoDB, responde JSON.    │                        │
+    └─────────────────────────────────────┼──────────────────────┘
+                                          │
+    ┌─────────────────────────────────────▼──────────────────────┐
+    │                    MONGODB ATLAS (nube)                      │
+    │  Colecciones: authusers, products, services, asesorias,      │
+    │              carts                                           │
+    └─────────────────────────────────────────────────────────────┘
+
+POR QUÉ SELF-CALL (el servidor se llama a sí mismo via HTTP):
+  - Los controladores de app_server/ NO importan modelos Mongoose directamente
+  - Toda comunicación pasa por apiClient.js → axios → /api/*
+  - Esto mantiene la separación limpia entre presentación y datos
+  - Permite escalar la API como microservicio independiente en el futuro
+
+
+================================================================================
+6. BASE DE DATOS: MODELOS MONGODB
+================================================================================
+
+COLECCIÓN: authusers (esquema_auth.js)
+  Campos:
+    username  String  único, minúsculas, sin espacios   ← índice único en MongoDB
+    password  String  hash bcrypt (12 rounds)           ← NUNCA texto plano
+    role      String  enum: ['user', 'admin']           ← default: 'user'
+    creado    Date    automático                         ← fecha de registro
+
+  Método especial:
+    comparePassword(candidatePassword)  → bcrypt.compare() → Promise<boolean>
+    Usado en login y en cambio de contraseña del perfil.
+
+COLECCIÓN: products (esquema_products.js)
+  Campos:
+    nombre      String  requerido
+    descripcion String
+    precio      Number  default: 0
+    imagen      String  ruta o URL de la imagen
+    categoria   String
+    stock       Number  default: 0
+    creado      Date    automático
+
+COLECCIÓN: services (esquema_services.js)
+  Campos:
+    nombre      String  requerido
+    descripcion String
+    categoria   String  enum: ['internet', 'telefonia', 'celular', 'canales']
+    creado      Date    automático
+
+  Nota: Si esta colección está vacía, el controlador main.servicesController
+  usa como fallback los datos estáticos de app_server/config/siteContent.js
+
+COLECCIÓN: asesorias (esquema_asesorias.js)
+  Campos:
+    nombre   String  nombre del cliente
+    consulta String  texto de la consulta
+    fecha    Date    automático
+
+COLECCIÓN: carts (esquema_cart.js)
+  Campos:
+    sessionId  String  identifica al carrito (cookie del navegador)
+    items      Array   cada ítem tiene: productId, nombre, precio, cantidad, imagen
+    updatedAt  Date    automático
+
+
+================================================================================
+7. API REST INTERNA (/api/*)
+================================================================================
+
+Todas las rutas de la API están en app_api/routes/index.js y son manejadas
+por los controladores en app_api/controllers/.
+
+La API recibe peticiones:
+  a) Del servidor (app_server/) via axios / apiClient.js
+  b) Del navegador directamente (ej: carrito, formulario de asesoría)
+
+RUTAS DE AUTENTICACIÓN:
+  POST   /api/auth/register          ← Registrar nuevo usuario
+  POST   /api/auth/login             ← Verificar credenciales, retornar {_id, username, role}
+  PUT    /api/auth/profile/:id       ← Cambiar username y/o contraseña (verifica currentPassword)
+  GET    /api/auth/users             ← Listar todos los usuarios (sin contraseñas)
+  DELETE /api/auth/users/:id         ← Eliminar usuario
+
+RUTAS DE PRODUCTOS:
+  GET    /api/products               ← Listar todos los productos
+  POST   /api/products               ← Crear producto
+  GET    /api/products/:productid    ← Obtener un producto
+  PUT    /api/products/:productid    ← Actualizar producto
+  DELETE /api/products/:productid    ← Eliminar producto
+
+RUTAS DE SERVICIOS:
+  GET    /api/services               ← Listar todos los planes
+  POST   /api/services               ← Crear plan
+  DELETE /api/services/:id           ← Eliminar plan
+
+RUTAS DE ASESORÍAS:
+  GET    /api/asesorias              ← Listar todas las solicitudes
+  POST   /api/asesorias              ← Crear solicitud (enviado desde /contacto)
+  DELETE /api/asesorias/:id          ← Eliminar solicitud
+
+RUTAS DEL CARRITO:
+  GET    /api/cart/:sessionid        ← Obtener carrito de una sesión
+  POST   /api/cart/add               ← Agregar ítem al carrito
+  POST   /api/cart/update            ← Actualizar cantidad de un ítem
+  POST   /api/cart/remove            ← Eliminar ítem del carrito
+  POST   /api/cart/clear             ← Vaciar carrito completo
+
+
+================================================================================
+8. FLUJO DE AUTENTICACIÓN COMPLETO
+================================================================================
+
+REGISTRO:
+  1. Usuario abre /register
+  2. Llena el formulario: username, password, confirmPassword
+  3. POST /register → app_server/controllers/auth.js → doRegister()
+  4. doRegister valida que password === confirmPassword
+  5. Llama a POST /api/auth/register via requestApi()
+  6. app_api/controllers/auth.js → register():
+     a. Verifica que el username no exista ya en MongoDB
+     b. Hashea la contraseña con bcrypt (12 rounds)
+     c. Crea el documento en la colección authusers con role='user'
+  7. Si status 201 → muestra mensaje de éxito con link al login
+  8. Si error → muestra el mensaje de error en el formulario
+
+LOGIN:
+  1. Usuario abre /login (o es redirigido desde requireAuth)
+  2. Llena el formulario: username, password
+  3. POST /login → doLogin()
+  4. doLogin llama a POST /api/auth/login
+  5. app_api/controllers/auth.js → login():
+     a. Busca el usuario en MongoDB (username en minúsculas)
+     b. Llama a user.comparePassword(password) → bcrypt.compare()
+     c. Si coincide → retorna { _id, username, role } (sin contraseña)
+  6. doLogin guarda req.session.user = { _id, username, role }
+  7. Redirige a req.session.returnTo (URL que intentaba visitar) o a '/'
+
+PROTECCIÓN DE RUTAS (requireAuth):
+  - En app.js, TODAS las rutas de indexRouter y adminRouter pasan por requireAuth
+  - requireAuth verifica si existe req.session.user
+  - Si existe: copia el usuario a res.locals.sessionUser (disponible en Pug)
+               y llama a next()
+  - Si no existe: guarda req.originalUrl en req.session.returnTo
+                  y redirige a /login
+
+LOGOUT:
+  GET /logout → req.session.destroy() → redirect('/login')
+
+ACCESO DE INVITADO:
+  GET /guest → crea sesión { _id: null, username: 'Invitado', role: 'guest' }
+  El invitado puede navegar pero no puede editar su perfil.
+
+USUARIOS ADMIN:
+  - El rol 'admin' se asigna manualmente (solo via seed_admin.js o MongoDB Atlas)
+  - NO se puede registrar como admin desde la web (rol siempre 'user' en registro)
+  - Las rutas /admin/* tienen una segunda verificación en requireAdmin:
+      req.session?.user?.role === 'admin'
+    Si no es admin → responde 403 con la vista error.pug
+
+
+================================================================================
+9. SISTEMA DE SESIONES
+================================================================================
+
+Express-session crea un objeto req.session por cada visitante.
+La sesión se identifica con una cookie firmada en el navegador.
+
+CONFIGURACIÓN (app.js):
+  secret:           Clave para firmar las cookies (SESSION_SECRET o valor por defecto)
+  resave: false     No guarda la sesión si no cambió nada
+  saveUninitialized: false  No crea sesión hasta que se escriba algo
+  cookie.httpOnly: true     La cookie NO es accesible por JavaScript del navegador
+  cookie.maxAge:    8 horas (28,800,000 ms)
+
+ALMACENAMIENTO:
+  Por defecto, express-session usa MemoryStore (memoria RAM del proceso).
+  En producción real se recomienda usar MongoDB Store (connect-mongo) para
+  que las sesiones persistan si el servidor se reinicia.
+
+DATOS EN LA SESIÓN:
+  req.session.user = { _id, username, role }   ← Tras login/guest
+  req.session.returnTo = '/ruta'               ← URL guardada por requireAuth
+
+CARRITO Y SESIÓN:
+  El carrito usa una cookie separada 'cartSessionId' (UUID), no relacionada
+  con la sesión de autenticación. Esto permite que el carrito persista
+  aunque el usuario no esté logueado.
+
+
+================================================================================
+10. PANEL DE ADMINISTRACIÓN
+================================================================================
+
+Acceso: Solo usuarios con role === 'admin' pueden acceder a /admin/*.
+Doble protección:
+  1. app.js: app.use('/admin', requireAuth, adminRouter) → verifica sesión
+  2. router.use(ctrl.requireAdmin) → verifica que el rol sea 'admin'
+
+SECCIÓN PRODUCTOS (/admin/products):
+  - Lista todos los productos del catálogo (GET /api/products)
+  - Formulario para crear producto con:
+      * Nombre, descripción, precio, categoría, stock
+      * Imagen: se puede subir un archivo (multer) O pegar una URL
+  - Subida de imagen con multer:
+      * Destino: public/images/product_<timestamp>.<ext>
+      * La ruta /images/product_... se guarda en la DB y sirve como src de <img>
+      * Formatos aceptados: jpg, jpeg, png, webp, gif
+      * Tamaño máximo: 5 MB
+  - Botón eliminar por producto
+
+SECCIÓN SERVICIOS (/admin/services):
+  - Lista los planes agrupados por categoría (internet, telefonía, celular, canales)
+  - Formulario para crear plan: nombre, descripción, categoría (dropdown)
+  - Botón eliminar por plan
+
+SECCIÓN ASESORÍAS (/admin/asesorias):
+  - Lista todas las solicitudes enviadas desde /contacto
+  - Muestra: nombre, consulta, fecha
+  - Botón eliminar por solicitud
+  - NO permite crear nuevas (eso lo hacen los clientes)
+
+SECCIÓN USUARIOS (/admin/users):
+  - Lista todos los usuarios registrados con su rol
+  - Botón eliminar por usuario
+  - Los admins NO pueden borrarse a sí mismos (protegido en la vista Pug)
+
+
+================================================================================
+11. MEDIDOR DE VELOCIDAD (LIBRESPEED)
+================================================================================
+
+LibreSpeed es una librería open-source para medir velocidad de internet
+directamente desde el navegador, sin plugins ni aplicaciones externas.
+(Autor: Federico Dossena, licencia GNU LGPLv3)
+
+ARCHIVOS:
+  public/javascripts/speedtest.js         ← Clase Speedtest() del lado del cliente
+  public/javascripts/speedtest_worker.js  ← Web Worker (hilo separado en el navegador)
+
+CÓMO FUNCIONA:
+  1. El navegador carga index.pug
+  2. El JS de index.pug crea una instancia de Speedtest()
+  3. Al presionar "Iniciar", se ejecuta speedtest.start()
+  4. El Web Worker realiza peticiones HTTP a los endpoints del backend:
+
+     GET /backend/garbage?ckSize=N   → Descarga: el servidor envía bytes aleatorios
+                                       El worker mide cuántos bytes llegaron en X ms
+                                       → resultado en Kbps
+
+     POST /backend/empty             → Carga: el worker envía datos y descarta la respuesta
+                                       El servidor responde 200 vacío
+                                       → resultado en Kbps
+
+     GET /backend/empty              → Ping: mide el tiempo de ida y vuelta (RTT)
+                                       → resultado en ms
+
+     GET /backend/getIP              → Obtiene la IP del cliente para mostrarla
+
+  5. El callback onupdate() se dispara cada ~200ms con los valores actuales:
+     - dlStatus (descarga en Kbps)  → se divide entre 1000 → Mbps con 2 decimales
+     - ulStatus (carga en Kbps)     → se divide entre 1000 → Mbps con 2 decimales
+     - pingStatus (ping en ms)
+
+  6. Las barras de progreso se animan en tiempo real usando el porcentaje
+     relativo a un máximo de 1000 Mbps (descarga/carga) o 200 ms (ping).
+
+  7. Al terminar (onend), se muestra un modal sugiriendo el plan más adecuado
+     según la velocidad medida.
+
+RUTAS BACKEND (en app_server/routes/index.js):
+  router.get('/backend/garbage', garbageController)
+  router.get('/backend/empty',   emptyController)
+  router.post('/backend/empty',  emptyController)
+  router.get('/backend/getIP',   getIpController)
+
+  Y también:
+  router.get('/speedtest_worker.js', ...) ← Sirve el worker desde public/
+
+
+================================================================================
+12. CARRITO DE COMPRAS
+================================================================================
+
+El carrito está implementado como una sesión de base de datos separada
+identificada con un UUID en una cookie 'cartSessionId'.
+
+FLUJO DE AGREGAR AL CARRITO (desde products.pug):
+  1. El usuario hace clic en "Agregar al carrito"
+  2. El JS del navegador hace fetch POST /api/cart/add con:
+     { productId, nombre, precio, cantidad, imagen }
+     También incluye sessionId (el cartSessionId de la cookie)
+  3. app_api/controllers/cart.js busca o crea el documento Cart en MongoDB
+  4. Si el producto ya existe en items, incrementa la cantidad
+  5. Si no, lo agrega como nuevo ítem
+
+VISUALIZACIÓN DEL CARRITO (/cart):
+  - main.js → cartController() lee el cartSessionId de la cookie
+  - Llama a GET /api/cart/:sessionid
+  - Renderiza cart.pug con los ítems, subtotal, IVA (15%) y total
+
+CÁLCULO DE PRECIOS (en cart.pug):
+  Subtotal = suma de (precio × cantidad) de cada ítem
+  IVA      = Subtotal × 0.15  (15%)
+  Total    = Subtotal × 1.15
+
+BADGE DEL NAVBAR:
+  En layout.pug se muestra un badge con la cantidad de ítems si cart.items.length > 0
+  El carrito se carga en cartController() y se pasa como variable 'cart' a la vista.
+  NOTA: El badge solo aparece en la página /cart. Para que aparezca en todas las páginas
+  sería necesario cargar el carrito en un middleware global (posible mejora futura).
+
+
+================================================================================
+13. SERVICIOS Y ASESORÍAS
+================================================================================
+
+SERVICIOS (planes de internet, telefonía, etc.):
+  - Se almacenan en la colección 'services' de MongoDB
+  - El administrador los crea/elimina desde /admin/services
+  - La página /servicios los muestra agrupados por categoría (internet, telefonía, etc.)
+  - Si la colección está vacía en MongoDB, se usa como fallback los planes
+    estáticos definidos en app_server/config/siteContent.js
+  - El controlador main.servicesController() primero consulta la API y si no
+    hay datos usa el fallback.
+
+ASESORÍAS (solicitudes de contacto):
+  - El cliente llena el formulario en /contacto: nombre + consulta
+  - El JS del navegador hace fetch POST /api/asesorias (directo al API)
+  - Se guarda en la colección 'asesorias' de MongoDB
+  - El administrador las ve y elimina desde /admin/asesorias
+
+
+================================================================================
+14. SISTEMA DE DISEÑO (CSS)
+================================================================================
+
+PALETA DE COLORES:
+  #71E4F4  Cian claro   ← textos de acento, links, barras de descarga
+  #11C1F5  Cian         ← botones primarios, bordes activos, formularios
+  #D374FF  Púrpura      ← admin, gradientes, badges info
+  #F491BF  Rosa neón    ← alertas, hover de links, gradiente de carga
+  #FFFFFF  Blanco       ← texto principal en fondos oscuros
+
+FONDOS OSCUROS:
+  #0d0d14  Fondo global del body (negro azulado)
+  #13131f  Superficies secundarias
+  #1a1a2e  Tarjetas (.card) y modales
+
+FUENTES:
+  'Platinum Sign'       → Marca (navbar brand) y títulos hero. Look premium.
+  'TT Octosquares'      → Headings (h1-h6). Geométrica y moderna.
+  'TT Octosquares Light'→ Subtítulos y cuerpo. Legible y delgada.
+
+BOTONES (sistema pill + gradiente):
+  Estado normal:  fondo transparente, borde de color de la variante, border-radius: 50px
+  Estado hover:   aparece gradiente animado de los 4 colores (opacity 0→1 en 250ms)
+                  el texto cambia a #0d0d14 para contraste
+                  se agrega sombra de resplandor cian
+  Técnica:        pseudo-elemento ::before con background-size: 300% animado con
+                  @keyframes btn-gradient (desplaza background-position 0%→100%→0%)
+
+NAVBAR:
+  Fondo: rgba(10,10,18,0.97) con backdrop-filter: blur(8px) → efecto glassmorphism
+  Línea inferior: gradiente animado de los 4 colores (mismo keyframe que los botones)
+  En móviles: colapsa en menú hamburguesa (Bootstrap navbar-expand-lg)
+
+TEMA OSCURO:
+  Bootstrap 5 tiene soporte nativo para dark mode via data-bs-theme='dark' en <html>
+  Se sobreescriben las variables CSS de Bootstrap en :root para usar la paleta exacta
+  Componentes específicamente sobreescritos: cards, forms, badges, alerts, modales,
+  progress bars, carousel indicators, navbar toggler icon.
+
+RESPONSIVE:
+  - Bootstrap 5 grid (col-md-*, col-lg-*) para layouts multi-columna
+  - Media queries personalizadas:
+      < 768px: imagen hero se oculta, hero al centro
+      < 576px: speedtest card ajusta tamaño de fuente, carrito ajusta imágenes
+  - Navbar colapsa en hamburguesa en < 992px (lg breakpoint)
+  - clamp() en títulos para escalar tipografía según el viewport
+
+
+================================================================================
+15. FLUJO COMPLETO DE UNA PETICIÓN HTTP
+================================================================================
+
+EJEMPLO: Usuario autenticado visita /products
+
+  1. Navegador envía: GET /products
+     (con la cookie de sesión adjunta automáticamente por el navegador)
+
+  2. app.js recibe la petición.
+     Pasa por express.static → no es un archivo estático → continúa.
+     Pasa por express-session → lee la cookie, recarga req.session.
+     Llega a: app.use('/', requireAuth, indexRouter)
+
+  3. requireAuth:
+     - req.session.user existe? SÍ
+     - Copia a res.locals.sessionUser = req.session.user
+     - Llama a next()
+
+  4. indexRouter (app_server/routes/index.js):
+     - router.get('/products', ctrlMain.productsController)
+
+  5. productsController (app_server/controllers/main.js):
+     - Llama a requestApi('/api/products', { method: 'GET' })
+     - apiClient.js construye: GET http://localhost:3000/api/products
+
+  6. La petición HTTP interna llega de nuevo a app.js:
+     - app.use('/api', apiRouter) la captura PRIMERO (sin requireAuth)
+
+  7. apiRouter (app_api/routes/index.js):
+     - router.get('/products', productsController.productsList)
+
+  8. productsList (app_api/controllers/products.js):
+     - Product.find() → MongoDB Atlas → devuelve array de productos
+     - res.status(200).json(productos)
+
+  9. La respuesta JSON regresa a requestApi() en paso 5.
+     requestApi retorna: { ok: true, status: 200, body: [productos] }
+
+  10. productsController renderiza:
+      res.render('products', { title: 'Productos', products: body })
+
+  11. Pug compila products.pug usando:
+      - layout.pug como base (navbar con sessionUser, footer)
+      - los productos del array
+
+  12. El HTML generado se envía al navegador.
+      El navegador lo muestra con el CSS de public/stylesheets/style.css.
+
+
+================================================================================
+16. ARCHIVOS IMPORTANTES Y SU FUNCIÓN
+================================================================================
+
+app.js
+  El corazón de la aplicación. Define el orden de middlewares y routers.
+  El orden importa: /api va PRIMERO para que las llamadas internas del servidor
+  no sean bloqueadas por requireAuth.
+
+bin/www
+  Arranca el servidor HTTP. Lee process.env.PORT (para Heroku/Railway) o usa 3000.
+
+app_server/lib/apiClient.js
+  La "tubería" entre la capa de presentación y la capa de datos.
+  Todas las llamadas desde controladores del servidor pasan por aquí.
+  Centraliza la URL base, el timeout y el manejo de errores HTTP.
+
+app_server/middleware/requireAuth.js
+  Guardián de rutas. Aplicado automáticamente a todas las páginas del sitio.
+  También inyecta sessionUser en res.locals para que las vistas Pug lo usen.
+
+app_server/config/siteContent.js
+  Constantes de UI: nombres de páginas, textos, planes estáticos de fallback.
+  Permite cambiar textos del sitio sin tocar las vistas Pug.
+
+app_api/models/db.js
+  Establece la conexión con MongoDB y registra todos los modelos Mongoose.
+  Maneja errores de conexión y cierre limpio del proceso (SIGINT).
+
+public/javascripts/speedtest.js + speedtest_worker.js
+  Librería LibreSpeed completa. speedtest.js es la API pública (clase Speedtest),
+  speedtest_worker.js es el Web Worker que corre el test en un hilo separado
+  para no bloquear la interfaz del navegador durante la medición.
+
+seed_admin.js
+  Script de una sola ejecución para crear el primer usuario administrador.
+  Solo se necesita correr una vez: node seed_admin.js
+
+populate.js
+  Script para poblar la DB con productos de ejemplo.
+  Solo se necesita correr una vez: node populate.js
+
+
+================================================================================
+  FIN DEL DOCUMENTO
+  New Tech ISP — Plataforma web v1.0
+================================================================================

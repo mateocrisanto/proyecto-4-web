@@ -1,24 +1,56 @@
+//- LAYOUT.PUG — PLANTILLA BASE PARA TODAS LAS PÁGINAS INTERNAS
+//- ==============================================================
+//- Todas las vistas que requieren sesión extienden este layout con:
+//-   extends layout
+//-   block content
+//-     // contenido de la página
+//-
+//- ESTRUCTURA:
+//-   <html data-bs-theme='dark'>   ← activa el tema oscuro global de Bootstrap 5
+//-     <head> — CSS, Bootstrap 5.3.8, FontAwesome 5, fuentes locales
+//-     <body.app-shell>
+//-       <nav> — navbar fija con links de navegación y menú admin condicional
+//-       <main.app-content> — block content (relleno por cada vista hija)
+//-       <footer> — pie de página
+//-
+//- DATOS DISPONIBLES EN VISTAS HIJAS (inyectados por controladores):
+//-   title        → título de la pestaña del navegador
+//-   sessionUser  → { _id, username, role } — populado por requireAuth
+//-   cart         → carrito de la sesión (para el badge del carrito)
+
 doctype html
+//- data-bs-theme='dark' activa el tema oscuro nativo de Bootstrap 5
 html(lang='es' data-bs-theme='dark')
   head
     title= title
     meta(charset='utf-8')
+    //- viewport: necesario para diseño responsive en móviles
     meta(name='viewport' content='width=device-width, initial-scale=1')
+    //- style.css se carga ANTES de Bootstrap para que sus variables CSS
+    //- sobreescriban las de Bootstrap sin necesidad de !important en cada regla
     link(rel='stylesheet', href='/stylesheets/style.css')
-    // bootstrap css
+    //- Bootstrap 5.3.8 — framework CSS/JS principal
     link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css", rel="stylesheet")
-    // bootstrap js
+    //- Bootstrap Bundle incluye Popper.js — necesario para dropdowns y modales
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js")
-    // fontawesome
+    //- FontAwesome 5 — librería de íconos usados en navbar, botones y tarjetas
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css')
 
   body.app-shell
+    //- ── NAVBAR ───────────────────────────────────────────────────────────────
+    //- fixed-top: la barra queda fija en la parte superior al hacer scroll
+    //- navbar-expand-lg: colapsa en un menú hamburguesa en pantallas < 992px
+    //- bg-dark: fondo oscuro definido en style.css (sobreescribe Bootstrap dark)
     nav.navbar.navbar-expand-lg.fixed-top.navbar-dark.bg-dark
       .container-fluid
+        //- Nombre de la empresa — lleva a la página principal
         a.navbar-brand.brand-name(href='/') New Tech
+        //- Botón hamburguesa — visible solo en móviles, colapsa/expande el menú
         button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarCollapse' aria-controls='navbarCollapse' aria-expanded='false' aria-label='Toggle navigation')
           span.navbar-toggler-icon
+        //- Menú colapsable — se muestra/oculta en móviles con el botón hamburguesa
         #navbarCollapse.collapse.navbar-collapse
+          //- Links principales — alineados a la izquierda (me-auto)
           ul.navbar-nav.me-auto.mb-2.mb-lg-0
             li.nav-item
               a.nav-link(href='/') Home
@@ -29,17 +61,23 @@ html(lang='es' data-bs-theme='dark')
             li.nav-item
               a.nav-link(href='/contacto') Asesorias
             li.nav-item
+              //- Carrito con badge: muestra la cantidad de ítems si hay alguno
               a.nav-link(href='/cart', id='cart-link')
                 i.fas.fa-shopping-cart.me-1
                 | Carrito
+                //- Badge dinámico: solo aparece si el carrito tiene ítems
                 if cart && cart.items && cart.items.length > 0
                   span.badge.bg-primary.ms-1= cart.items.length
+          //- Links del lado derecho — alineados a la derecha (ms-auto)
           ul.navbar-nav.ms-auto.mb-2.mb-lg-0.align-items-center
+            //- ── MENÚ ADMIN (solo visible si sessionUser.role === 'admin') ────
             if sessionUser && sessionUser.role === 'admin'
+              //- Dropdown de administración — color púrpura como indicador visual de rol
               li.nav-item.dropdown.me-2
                 a.nav-link.dropdown-toggle(href='#' id='adminDropdown' role='button' data-bs-toggle='dropdown' aria-expanded='false' style='color:var(--c-purple)')
                   i.fas.fa-cog.me-1
                   | Admin
+                //- Menú desplegable con fondo de la paleta oscura (#1a1a2e = --c-dark-card)
                 ul.dropdown-menu.dropdown-menu-end(aria-labelledby='adminDropdown' style='background:#1a1a2e;border:1px solid rgba(211,116,255,0.3)')
                   li
                     a.dropdown-item(href='/admin/products' style='color:#e8e8f0')
@@ -57,21 +95,28 @@ html(lang='es' data-bs-theme='dark')
                     a.dropdown-item(href='/admin/users' style='color:#e8e8f0')
                       i.fas.fa-users.me-2(style='color:var(--c-cyan-light)')
                       | Usuarios
+              //- Badge visual "ADMIN" — gradiente púrpura/rosa de la paleta de diseño
               li.nav-item.me-2
                 span.badge(style='background:linear-gradient(90deg,#D374FF,#F491BF);color:#0d0d14;font-size:.75rem;border-radius:50px;padding:.35em .8em')
                   i.fas.fa-shield-alt.me-1
                   | ADMIN
+            //- ── USUARIO Y LOGOUT (visible para todos los usuarios con sesión) ──
             if sessionUser
+              //- Nombre de usuario — enlaza al perfil, color cian de la paleta
               li.nav-item
                 a.nav-link(href='/perfil' style='color:var(--c-cyan);font-size:.9rem')
                   i.fas.fa-user-circle.me-1
                   = sessionUser.username
+              //- Botón de cierre de sesión — outline-danger, borde redondeado (pill)
               li.nav-item
                 a.btn.btn-sm.btn-outline-danger.ms-2(href='/logout' style='border-radius:50px')
                   i.fas.fa-sign-out-alt.me-1
                   | Salir
+    //- ── CONTENIDO PRINCIPAL ─────────────────────────────────────────────────
+    //- app-content en style.css tiene padding-top para compensar el navbar fixed-top
     main.app-content
       block content
+    //- ── FOOTER ──────────────────────────────────────────────────────────────
     footer.footer.py-3.bg-dark.text-white
       .container.text-center
         span NEW TECH

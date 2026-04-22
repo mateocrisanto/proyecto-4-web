@@ -1,50 +1,75 @@
+/**
+ * APP.JS — PUNTO DE ENTRADA PRINCIPAL DE LA APLICACIÓN
+ * ======================================================
+ * Este archivo configura y ensambla toda la aplicación Express.
+ * Es el "núcleo" que une todos los módulos: modelos, rutas, middlewares y vistas.
+ *
+ * FLUJO DE UNA PETICIÓN:
+ *   Navegador → bin/www → app.js → router correspondiente → controlador → vista Pug / JSON
+ *
+ * ORDEN CRÍTICO DE MIDDLEWARES (de arriba hacia abajo):
+ *   1. Parsers (JSON, URL, cookies)
+ *   2. Archivos estáticos (public/)
+ *   3. Sesión de usuario (express-session)
+ *   4. /api  → REST API interna (sin protección — tiene su propia lógica de auth)
+ *   5. /     → authRouter (login / register / logout / guest — sin requerir sesión)
+ *   6. /admin → requireAuth + adminRouter (solo admins)
+ *   7. /     → requireAuth + indexRouter  (cualquier usuario autenticado)
+ */
+
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const session = require('express-session');
+const session = require('express-session'); // Manejo de sesiones HTTP con cookie
 
-// modelo
-require('./app_api/models/db'); // incorporar el modelo de datos
+// ── MODELOS ──────────────────────────────────────────────────────────────────
+// Cargar db.js registra todos los esquemas Mongoose y establece la conexión
+// con MongoDB Atlas. Debe importarse ANTES que cualquier router que use modelos.
+require('./app_api/models/db');
 
-// routers
-const indexRouter = require('./app_server/routes/index');
-const authRouter = require('./app_server/routes/auth');
-const adminRouter = require('./app_server/routes/admin');
-const requireAuth = require('./app_server/middleware/requireAuth');
-// const usersRouter = require('./app_server/routes/users'); // Comentado - e-commerce
-const apiRouter = require('./app_api/routes/index'); // rutas para la REST API
+// ── ROUTERS ───────────────────────────────────────────────────────────────────
+// Cada router agrupa las rutas de una sección de la app
+const indexRouter = require('./app_server/routes/index');   // páginas principales (requiere sesión)
+const authRouter  = require('./app_server/routes/auth');    // login / register / logout / guest
+const adminRouter = require('./app_server/routes/admin');   // panel de administración
+const requireAuth = require('./app_server/middleware/requireAuth'); // middleware de protección
+const apiRouter   = require('./app_api/routes/index');      // REST API interna (/api/*)
 
 const app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'app_server', 'views')); // vistas
+// ── MOTOR DE VISTAS ───────────────────────────────────────────────────────────
+// Pug es el motor de plantillas. Las vistas (.pug) viven en app_server/views/
+app.set('views', path.join(__dirname, 'app_server', 'views'));
 app.set('view engine', 'pug');
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+// ── MIDDLEWARES GLOBALES ───────────────────────────────────────────────────────
+app.use(logger('dev'));                              // Log de peticiones HTTP en consola
+app.use(express.json());                             // Parsear body JSON (para la REST API)
+app.use(express.urlencoded({ extended: false }));    // Parsear body de formularios HTML
+app.use(cookieParser());                             // Parsear cookies (cartSessionId, etc.)
+app.use(express.static(path.join(__dirname, 'public'))); // Servir CSS, JS, imágenes desde public/
 
-// sesión de usuario
+// ── SESIÓN DE USUARIO ─────────────────────────────────────────────────────────
+// express-session guarda en memoria (por defecto) un objeto req.session por usuario.
+// req.session.user contiene: { _id, username, role } tras el login.
+// La cookie de sesión dura 8 horas y es httpOnly (no accesible por JS del navegador).
 app.use(session({
   secret: process.env.SESSION_SECRET || 'newtech-dev-secret-change-in-production',
-  resave: false,
-  saveUninitialized: false,
+  resave: false,            // no re-guardar si no hubo cambios
+  saveUninitialized: false, // no crear sesión hasta que se escriba algo
   cookie: {
-    httpOnly: true,
-    maxAge: 8 * 60 * 60 * 1000  // 8 horas
+    httpOnly: true,         // protección XSS: la cookie no es accesible desde JS
+    maxAge: 8 * 60 * 60 * 1000  // 8 horas en milisegundos
   }
 }));
 
-// cuando usar los ruteadores
-app.use('/api', apiRouter);                // API REST (sin auth — autenticación propia)
-app.use('/', authRouter);                  // /login, /register, /logout (sin auth)
-app.use('/admin', requireAuth, adminRouter); // panel admin — requiere sesión
-app.use('/', requireAuth, indexRouter);    // todo lo demás requiere sesión activa
-// app.use('/users', usersRouter); // Comentado - ahora es e-commerce
+// ── RUTAS ─────────────────────────────────────────────────────────────────────
+app.use('/api', apiRouter);                    // REST API — no requiere sesión de navegador
+app.use('/', authRouter);                      // /login, /register, /logout, /guest
+app.use('/admin', requireAuth, adminRouter);   // Panel admin — solo con sesión activa + rol admin
+app.use('/', requireAuth, indexRouter);        // Páginas principales — solo con sesión activa
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
