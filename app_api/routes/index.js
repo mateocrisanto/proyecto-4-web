@@ -6,6 +6,7 @@ const ctrlCart = require('../controllers/cart');
 const ctrlAsesorias = require('../controllers/asesorias');
 const ctrlAuth = require('../controllers/auth');
 const ctrlServices = require('../controllers/services');
+const ctrlSiteContent = require('../controllers/sitecontent');
 
 // rutas de autenticación
 router.post('/auth/register', ctrlAuth.register);
@@ -38,6 +39,9 @@ router
     .route('/asesorias')
     .post(ctrlAsesorias.asesoriaCreate)
     .get(ctrlAsesorias.asesoriaList);
+router.get('/asesorias/user/:userId', ctrlAsesorias.asesoriaGetByUser);
+router.get('/asesorias/:id', ctrlAsesorias.asesoriaGetOne);
+router.post('/asesorias/:id/mensajes', ctrlAsesorias.asesoriaAddMessage);
 router.delete('/asesorias/:id', ctrlAsesorias.asesoriaDelete);
 
 // rutas para servicios
@@ -45,6 +49,12 @@ router
     .route('/services')
     .get(ctrlServices.servicesList)
     .post(ctrlServices.servicesCreate);
+router.put('/services/:id', ctrlServices.servicesUpdate);
 router.delete('/services/:id', ctrlServices.servicesDelete);
+
+// rutas para contenido del sitio
+router.get('/sitecontent', ctrlSiteContent.siteContentList);
+router.get('/sitecontent/:section', ctrlSiteContent.siteContentGetSection);
+router.put('/sitecontent/:section', ctrlSiteContent.siteContentUpsertSection);
 
 module.exports = router;

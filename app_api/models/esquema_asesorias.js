@@ -3,31 +3,22 @@
  * Define la estructura de datos para las solicitudes de asesorías en MongoDB
  */
 
-const mongoose = require('mongoose'); // Librería para interactuar con MongoDB
+const mongoose = require('mongoose');
 
-// Definir el esquema de asesorías
+const mensajeSchema = new mongoose.Schema({
+    autor:    { type: String, enum: ['cliente', 'admin'], required: true },
+    texto:    { type: String, required: true },
+    enviado:  { type: Date, default: Date.now }
+}, { _id: false });
+
 const aseoriasSchema = new mongoose.Schema({
-    // ========== INFORMACIÓN DEL CLIENTE ==========
-    nombre: {
-        type: String,
-        required: true // Campo obligatorio - Nombre del cliente
-    },
-    
-    // ========== DETALLE DE LA ASESORÍA ==========
-    consulta: {
-        type: String,
-        required: true // Campo obligatorio - Consulta o tema de asesoría
-    },
-    
-    // ========== METADATA ==========
-    creado: {
-        type: Date,
-        default: Date.now // Registra automáticamente la fecha/hora de creación
-    }
+    nombre:   { type: String, required: true },
+    consulta: { type: String, required: true },
+    servicio: { type: String, default: 'Otra consulta' },
+    mensajes: { type: [mensajeSchema], default: [] },
+    userId:   { type: String, index: true },   // ID del usuario que envió la solicitud
+    creado:   { type: Date, default: Date.now }
 });
 
-// ========== COMPILAR EL ESQUEMA EN UN MODELO ==========
-// Este modelo se utilizará en los controladores para todas las operaciones de base de datos
 const Asesorias = mongoose.model('asesoria', aseoriasSchema);
-
 module.exports = Asesorias;

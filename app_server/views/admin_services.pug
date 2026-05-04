@@ -55,13 +55,63 @@ block content
             each svc in catServices
               .col-lg-3.col-md-4.col-sm-6
                 .card.h-100(style='border:1px solid rgba(211,116,255,0.15)')
-                  .card-body.d-flex.justify-content-between.align-items-start
-                    div
-                      h6.mb-1= svc.nombre
-                      p.text-muted.small.mb-0= svc.descripcion
-                    form(action=`/admin/services/delete/${svc._id}` method='POST' class='ms-2 flex-shrink-0')
-                      button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("¿Eliminar este servicio?")')
-                        i.fas.fa-trash
+                  .card-body
+                    h6.mb-1= svc.nombre
+                    p.text-muted.small.mb-2= svc.descripcion
+                    .d-flex.gap-2.mt-auto
+                      button.btn.btn-outline-primary.btn-sm.flex-grow-1(
+                        type='button'
+                        onclick=`openEditService(${JSON.stringify(svc)})`
+                      )
+                        i.fas.fa-edit.me-1
+                        | Editar
+                      form(action=`/admin/services/delete/${svc._id}` method='POST' class='flex-grow-1')
+                        button.btn.btn-danger.btn-sm.w-100(type='submit' onclick='return confirm("¿Eliminar este servicio?")')
+                          i.fas.fa-trash
         else
           p.text-muted.small.ms-1 Sin servicios en esta categoría.
         hr(style='border-color:rgba(255,255,255,0.08)')
+
+  //- Modal de edición de servicio
+  .modal.fade#editServiceModal(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Servicio
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        form#editServiceForm(method='POST')
+          .modal-body
+            .row.g-3
+              .col-md-6
+                label.form-label Nombre del Plan
+                input.form-control#editSvcNombre(type='text' name='nombre' required)
+              .col-md-6
+                label.form-label Categoría
+                select.form-select#editSvcCategoria(name='categoria' required)
+                  option(value='internet') Internet
+                  option(value='telefonia') Telefonía
+                  option(value='celular') Celular
+                  option(value='canales') Canales
+              .col-12
+                label.form-label Descripción (opcional)
+                input.form-control#editSvcDescripcion(type='text' name='descripcion')
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(type='submit')
+              i.fas.fa-save.me-1
+              | Guardar cambios
+
+  script.
+    function openEditService(svc) {
+      document.getElementById('editSvcNombre').value      = svc.nombre      || '';
+      document.getElementById('editSvcDescripcion').value = svc.descripcion || '';
+
+      const sel = document.getElementById('editSvcCategoria');
+      for (let opt of sel.options) opt.selected = (opt.value === svc.categoria);
+
+      document.getElementById('editServiceForm').action = '/admin/services/edit/' + svc._id;
+      new bootstrap.Modal(document.getElementById('editServiceModal')).show();
+    }
+

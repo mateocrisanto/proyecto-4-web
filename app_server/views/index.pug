@@ -169,23 +169,38 @@ block content
 
     // Modal de sugerencia de plan tras speedtest
     .modal.fade#speed-suggestion-modal(tabindex='-1')
-      .modal-dialog.modal-dialog-centered
-        .modal-content
-          .modal-header
-            h5.modal-title Sugerencia de plan de Internet
+      .modal-dialog.modal-dialog-centered.speed-suggestion-dialog
+        .modal-content.speed-suggestion-modal
+          .modal-header.border-0
+            .suggestion-modal-heading
+              span.suggestion-kicker Resultado de tu prueba
+              h5.modal-title Sugerencia de plan de Internet
             button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Cerrar')
           .modal-body
-            p#suggestion-text.mb-3
-            .suggestion-box
-              h6.text-primary Plan recomendado
-              p.mb-2#suggested-plan
-              h6.text-success Producto recomendado
-              p.mb-2#suggested-product
-              h6.text-warning Servicio adicional recomendado
-              p#suggested-service
-          .modal-footer
+            .suggestion-hero
+              .suggestion-orb
+                span.suggestion-orb-ring
+                span.suggestion-orb-core
+                span.suggestion-orb-icon
+                  i.fas.fa-wifi
+              .suggestion-hero-copy
+                p#suggestion-text.suggestion-text.mb-2
+                .suggestion-speed-pill
+                  span Velocidad detectada
+                  strong#measured-speed-chip -- Mbps
+            .suggestion-grid
+              .suggestion-panel.suggestion-panel-primary
+                span.suggestion-label Plan recomendado
+                p.mb-0#suggested-plan
+              .suggestion-panel
+                span.suggestion-label Producto recomendado
+                p.mb-0#suggested-product
+              .suggestion-panel
+                span.suggestion-label Servicio adicional recomendado
+                p.mb-0#suggested-service
+          .modal-footer.border-0
             a.btn.btn-primary#suggestion-contact(href='/contacto') Contactar asesor
-            button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Cerrar
+            button.btn.btn-outline-secondary(type='button', data-bs-dismiss='modal') Seguir explorando
 
   // Call to Action
   .cta-section.py-5
@@ -213,6 +228,7 @@ block content
       const suggestedProduct = document.getElementById('suggested-product');
       const suggestedService = document.getElementById('suggested-service');
       const additionalContact = document.getElementById('suggestion-contact');
+      const measuredSpeedChip = document.getElementById('measured-speed-chip');
 
       const mainInternetPlans = !{JSON.stringify(mainInternetPlans || [])};
       const mainPhonePlans = !{JSON.stringify(mainPhonePlans || [])};
@@ -256,9 +272,28 @@ block content
         return 'Revisa nuestros productos destacados en la sección de productos';
       }
 
+      function formatSpeedDisplay(value) {
+        const numericValue = parseFloat(value);
+        if (!Number.isFinite(numericValue)) return '--';
+        const sign = numericValue < 0 ? '-' : '';
+        const absoluteValue = Math.abs(numericValue);
+
+        if (absoluteValue >= 100) {
+          return sign + Math.trunc(absoluteValue).toString().slice(0, 3);
+        }
+
+        if (absoluteValue >= 10) {
+          return sign + absoluteValue.toFixed(1).replace(/\.0$/, '');
+        }
+
+        return sign + absoluteValue.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+      }
+
       function showSpeedSuggestion(measuredDownload) {
         const plan = getRecommendedInternet(measuredDownload);
-        suggestionText.textContent = `Basado en tu velocidad medida de ${measuredDownload.toFixed(1)} Mbps, te recomendamos un plan superior.`;
+        const formattedMeasuredDownload = formatSpeedDisplay(measuredDownload);
+        suggestionText.textContent = `Basado en tu velocidad medida de ${formattedMeasuredDownload} Mbps, te recomendamos un plan superior.`;
+        measuredSpeedChip.textContent = `${formattedMeasuredDownload} Mbps`;
         suggestedPlan.textContent = plan;
         suggestedProduct.textContent = getRecommendedProduct();
         suggestedService.textContent = getAdditionalService();
@@ -301,11 +336,11 @@ block content
 
         st.onupdate = function(data) {
           if (data.dlStatus) {
-            downloadSpeed.textContent = (parseFloat(data.dlStatus) / 1000).toFixed(2);
+            downloadSpeed.textContent = formatSpeedDisplay(data.dlStatus);
             downloadBar.style.width = (data.dlProgress * 100).toFixed(0) + '%';
           }
           if (data.ulStatus) {
-            uploadSpeed.textContent = (parseFloat(data.ulStatus) / 1000).toFixed(2);
+            uploadSpeed.textContent = formatSpeedDisplay(data.ulStatus);
             uploadBar.style.width = (data.ulProgress * 100).toFixed(0) + '%';
           }
           if (data.pingStatus) {
@@ -337,7 +372,7 @@ block content
           button.addEventListener('click', function() {
             const productId = this.getAttribute('data-product-id');
 
-            fetch('/api/cart/add', {
+            fetch('/cart/add', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

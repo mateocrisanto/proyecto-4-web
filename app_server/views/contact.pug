@@ -5,100 +5,141 @@ block content
     .row
       .col-lg-8.mx-auto
         h1.mb-4 #{title}
-        p.lead.mb-4 Completa el formulario a continuación y nos pondremos en contacto pronto para asesorarte sobre los mejores planes para ti.
 
-        .card.shadow-sm
-          .card-body
-            form#asesorias-form
-              .mb-3
-                label.form-label(for='nombre') Nombre Completo
-                input.form-control#nombre(type='text', placeholder='Tu nombre', required, name='nombre')
-                .invalid-feedback Por favor ingresa tu nombre.
+        //- ══════════════════════════════════════════════════════════════════
+        //- VISTA A: CHAT (si el usuario ya envió una solicitud)
+        //- ══════════════════════════════════════════════════════════════════
+        if miAsesoria
+          //- Cabecera de la conversación
+          .d-flex.justify-content-between.align-items-center.mb-3
+            div
+              h5.mb-1(style='color:var(--c-cyan)')
+                i.fas.fa-comments.me-2
+                | Tu solicitud de asesoría
+              span.badge(style='background:linear-gradient(90deg,rgba(100,220,255,.12),rgba(211,116,255,.12));border:1px solid rgba(211,116,255,.35);color:var(--c-purple);font-size:.75rem')
+                i.fas.fa-tag.me-1
+                = miAsesoria.servicio || 'Otra consulta'
+            a.btn.btn-sm.btn-outline-secondary(href='/contacto/nueva' style='border-radius:50px;font-size:.8rem')
+              i.fas.fa-plus.me-1
+              | Nueva consulta
 
-              .mb-3
-                label.form-label(for='consulta') Consulta o Tema de Asesoría
-                textarea.form-control#consulta(rows='5', placeholder='Cuéntanos tu consulta, necesidad o sobre qué servicio deseas más información...', required, name='consulta')
-                .invalid-feedback Por favor ingresa tu consulta.
+          //- Mensaje original del usuario
+          .card.mb-3(style='border:1px solid rgba(100,220,255,.2)')
+            .card-body
+              .d-flex.align-items-start.gap-2.mb-1
+                i.fas.fa-user-circle.mt-1(style='color:var(--c-cyan)')
+                div
+                  small.fw-bold(style='color:var(--c-cyan)')= miAsesoria.nombre
+                  small.ms-2.text-muted(style='font-size:.75rem')= new Date(miAsesoria.creado).toLocaleDateString('es-EC', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+              p.mb-0(style='font-size:.9rem;color:#d0d0e8')= miAsesoria.consulta
 
-              .d-grid
-                button.btn.btn-primary.btn-lg(type='submit', id='submit-btn') Enviar Solicitud de Asesoría
+          //- Hilo de mensajes
+          if miAsesoria.mensajes && miAsesoria.mensajes.length > 0
+            .d-flex.flex-column.gap-2.mb-3
+              each m in miAsesoria.mensajes
+                - const esAdmin = m.autor === 'admin'
+                .d-flex(class=esAdmin ? 'justify-content-start' : 'justify-content-end')
+                  div(style=`max-width:80%;padding:.6rem 1rem;border-radius:1rem;${esAdmin ? 'background:rgba(211,116,255,.12);border:1px solid rgba(211,116,255,.2);border-bottom-left-radius:.2rem' : 'background:rgba(100,220,255,.1);border:1px solid rgba(100,220,255,.2);border-bottom-right-radius:.2rem'}`)
+                    small.d-block.mb-1.fw-bold(style=`font-size:.72rem;color:${esAdmin ? 'var(--c-purple)' : 'var(--c-cyan)'}`)
+                      = esAdmin ? 'Soporte' : 'Tú'
+                    p.mb-0(style='font-size:.88rem;color:#e0e0f0;word-break:break-word')= m.texto
+                    small.d-block.text-end.mt-1(style='font-size:.68rem;color:#6a6a8a')
+                      = m.enviado ? new Date(m.enviado).toLocaleTimeString('es-EC', {hour:'2-digit',minute:'2-digit'}) : ''
+          else
+            p.text-muted.text-center.mb-3(style='font-size:.85rem')
+              i.fas.fa-clock.me-1
+              | Tu solicitud fue recibida. Te responderemos pronto.
 
-        .alert.alert-success.mt-4(id='success-message', style='display: none;')
-          h5.alert-heading ¡Gracias!
-          p Tu solicitud de asesoría ha sido enviada exitosamente. Pronto nos pondremos en contacto.
+          //- Formulario para enviar mensaje de seguimiento
+          form(action='/contacto/mensaje' method='POST')
+            .input-group
+              input.form-control(
+                name='texto'
+                placeholder='Escribe un mensaje de seguimiento...'
+                autocomplete='off'
+                required
+                style='border-color:rgba(211,116,255,.3);background:#12122a;color:#e8e8f0;border-radius:.5rem 0 0 .5rem'
+              )
+              button.btn(type='submit' style='background:linear-gradient(90deg,var(--c-cyan),var(--c-purple));color:#0d0d14;font-weight:600;border-radius:0 .5rem .5rem 0')
+                i.fas.fa-paper-plane
 
-        .alert.alert-danger.mt-4(id='error-message', style='display: none;')
-          h5.alert-heading Error
-          p Ocurrió un error al enviar tu solicitud. Por favor intenta nuevamente.
+        //- ══════════════════════════════════════════════════════════════════
+        //- VISTA B: FORMULARIO (si todavía no hay solicitud)
+        //- ══════════════════════════════════════════════════════════════════
+        else
+          p.lead.mb-4 Completa el formulario y nos pondremos en contacto para asesorarte sobre el plan ideal para ti.
+
+          .card.shadow-sm
+            .card-body
+              form#asesorias-form
+                .mb-3
+                  label.form-label(for='nombre') Nombre Completo
+                  input.form-control#nombre(type='text', placeholder='Tu nombre', required, name='nombre')
+                  .invalid-feedback Por favor ingresa tu nombre.
+
+                .mb-3
+                  label.form-label(for='servicio') Tema de consulta
+                  select.form-select#servicio(name='servicio', required)
+                    option(value='' disabled selected) — Selecciona un servicio —
+                    each svc in (servicios || [])
+                      option(value=svc.nombre)= svc.nombre
+                    option(value='Otra consulta') Otra consulta
+
+                .mb-3
+                  label.form-label(for='consulta') Detalle de tu consulta
+                  textarea.form-control#consulta(rows='5', placeholder='Cuéntanos tu consulta o necesidad...', required, name='consulta')
+                  .invalid-feedback Por favor ingresa tu consulta.
+
+                .d-grid
+                  button.btn.btn-primary.btn-lg(type='submit', id='submit-btn') Enviar Solicitud de Asesoría
+
+          .alert.alert-success.mt-4(id='success-message', style='display:none')
+            h5.alert-heading ¡Gracias!
+            p Tu solicitud fue enviada. Pronto nos pondremos en contacto contigo.
+
+          .alert.alert-danger.mt-4(id='error-message', style='display:none')
+            h5.alert-heading Error
+            p Ocurrió un error al enviar tu solicitud. Por favor intenta nuevamente.
 
   script.
-    document.addEventListener('DOMContentLoaded', function() {
+    (function () {
       const form = document.getElementById('asesorias-form');
-      const submitBtn = document.getElementById('submit-btn');
-      const successMessage = document.getElementById('success-message');
-      const errorMessage = document.getElementById('error-message');
+      if (!form) return; // ya está en modo chat, no hay formulario
 
-      form.addEventListener('submit', async function(e) {
+      const submitBtn  = document.getElementById('submit-btn');
+      const successMsg = document.getElementById('success-message');
+      const errorMsg   = document.getElementById('error-message');
+
+      form.addEventListener('submit', async function (e) {
         e.preventDefault();
+        if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
 
-        // Validar el formulario
-        if (!form.checkValidity()) {
-          e.stopPropagation();
-          form.classList.add('was-validated');
-          return;
-        }
-
-        // Obtener los valores
-        const nombre = document.getElementById('nombre').value;
-        const consulta = document.getElementById('consulta').value;
-
-        // Desabilitar el botón
         submitBtn.disabled = true;
         submitBtn.textContent = 'Enviando...';
-        successMessage.style.display = 'none';
-        errorMessage.style.display = 'none';
+        successMsg.style.display = 'none';
+        errorMsg.style.display   = 'none';
 
         try {
-          // Enviar a la API
-          const response = await fetch('/api/asesorias', {
+          const res = await fetch('/contacto', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              nombre: nombre,
-              consulta: consulta
+              nombre:   document.getElementById('nombre').value,
+              servicio: document.getElementById('servicio').value,
+              consulta: document.getElementById('consulta').value
             })
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Asesoría creada:', data);
-
-            // Limpiar el formulario
-            form.reset();
-            form.classList.remove('was-validated');
-
-            // Mostrar mensaje de éxito
-            successMessage.style.display = 'block';
-
-            // Ocultar el formulario por un momento
-            form.style.display = 'none';
-
-            // Volver a mostrar después de 3 segundos
-            setTimeout(() => {
-              form.style.display = 'block';
-              successMessage.style.display = 'none';
-            }, 3000);
+          if (res.ok) {
+            // Redirigir para que el servidor muestre el chat con los datos recién guardados
+            window.location.href = '/contacto';
           } else {
-            throw new Error('Error en la respuesta del servidor');
+            throw new Error('Error en el servidor');
           }
-        } catch (error) {
-          console.error('Error:', error);
-          errorMessage.style.display = 'block';
-        } finally {
+        } catch (err) {
+          errorMsg.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Enviar Solicitud de Asesoría';
         }
       });
-    });
+    })();

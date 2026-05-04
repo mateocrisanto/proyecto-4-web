@@ -3,16 +3,25 @@
  * ==========================================
  * Estos controladores manejan las vistas (Pug) que los usuarios ven
  * Hacen peticiones a la API REST para obtener datos
- * 
+ *
  * Estructura:
- * - Cada controlador obtiene datos
- * - Los renderiza con la vista cor respondiente
+ * - Cada controlador obtiene datos de la API (incluyendo el contenido del sitio)
+ * - Los renderiza con la vista correspondiente
  * - Los datos se muestran al cliente
  */
 
 const crypto = require('crypto');
 const { requestApi } = require('../lib/apiClient');
-const siteContent = require('../config/siteContent');
+
+// ========== FUNCIÓN AUXILIAR: OBTENER SECCIÓN DE CONTENIDO ==========
+// Consulta la API y devuelve la sección solicitada, o {} si no existe/falla.
+const getSiteSection = async (section) => {
+  try {
+    const { ok, body } = await requestApi(`/api/sitecontent/${section}`, { method: 'GET' });
+    if (ok && body && typeof body === 'object') return body;
+  } catch (_) { /* fall through */ }
+  return {};
+};
 
 const ensureCartSessionId = (req, res) => {
   let sessionId = req.cookies?.cartSessionId || req.query.sessionId;
@@ -29,19 +38,14 @@ const ensureCartSessionId = (req, res) => {
   return sessionId;
 };
 
+const getPaypalClientId = () => {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
 
-// ========== FUNCIÓN AUXILIAR: RENDERIZAR LA PÁGINA DE INICIO ==========
-// Esta función regresa la vista con los datos de la página principal
-const homepageRender = (req, res, products = [], services = {}) => {
-  res.render('index', {
-    title: siteContent.home.title,
-    subtitle: siteContent.home.subtitle,
-    featuredProducts: products,
-    mainInternetPlans: siteContent.home.mainInternetPlans,
-    mainPhonePlans: siteContent.home.mainPhonePlans,
-    mainMobilePlans: siteContent.home.mainMobilePlans,
-    mainChannels: siteContent.home.mainChannels
-  });
+  if (!clientId || clientId.startsWith('TU_PAYPAL_')) {
+    return null;
+  }
+
+  return clientId;
 };
 
 // ========== CONTROLADOR: PÁGINA DE INICIO ==========
@@ -49,19 +53,35 @@ const homepageRender = (req, res, products = [], services = {}) => {
 // Landing page con medidor de velocidad y productos/servicios destacados
 const homepageController = async (req, res, next) => {
   try {
-    const { ok, status, body } = await requestApi('/api/products', { method: 'GET' });
+    const [homeContent, productsRes] = await Promise.all([
+      getSiteSection('home'),
+      requestApi('/api/products', { method: 'GET' })
+    ]);
 
-    if (ok && Array.isArray(body)) {
-      const featuredProducts = body.slice(0, 3);
-      homepageRender(req, res, featuredProducts, {});
-      return;
-    }
+    const featuredProducts = (productsRes.ok && Array.isArray(productsRes.body))
+      ? productsRes.body.slice(0, 3)
+      : [];
 
-    console.log('Error al obtener los productos:', status);
-    homepageRender(req, res, [], {});
+    res.render('index', {
+      title: homeContent.title,
+      subtitle: homeContent.subtitle,
+      featuredProducts,
+      mainInternetPlans: homeContent.mainInternetPlans,
+      mainPhonePlans: homeContent.mainPhonePlans,
+      mainMobilePlans: homeContent.mainMobilePlans,
+      mainChannels: homeContent.mainChannels
+    });
   } catch (err) {
-    console.log('Error al obtener los productos:', err);
-    homepageRender(req, res, [], {});
+    console.log('Error al cargar la página de inicio:', err);
+    res.render('index', {
+      title: null,
+      subtitle: null,
+      featuredProducts: [],
+      mainInternetPlans: [],
+      mainPhonePlans: [],
+      mainMobilePlans: [],
+      mainChannels: []
+    });
   }
 };
 
@@ -69,120 +89,238 @@ const homepageController = async (req, res, next) => {
 // GET /servicios
 const servicesController = async (req, res, next) => {
   try {
-    const { ok, body } = await requestApi('/api/services', { method: 'GET' });
-    // Si hay servicios en DB úsalos; si no, cae al siteContent estático
-    if (ok && Array.isArray(body) && body.length > 0) {
-      const byCategory = (cat) => body.filter(s => s.categoria === cat).map(s => s.nombre);
-      return res.render('services', {
-        title: siteContent.services.title,
-        internetPlans: byCategory('internet'),
-        phonePlans: byCategory('telefonia'),
-        mobilePlans: byCategory('celular'),
-        channels: byCategory('canales')
-      });
-    }
-  } catch (e) { /* fall through */ }
-  res.render('services', {
-    title: siteContent.services.title,
-    internetPlans: siteContent.services.internetPlans,
-    phonePlans: siteContent.services.phonePlans,
-    mobilePlans: siteContent.services.mobilePlans,
-    channels: siteContent.services.channels
-  });
+    const [servicesContent, servicesRes] = await Promise.all([
+      getSiteSection('services'),
+      requestApi('/api/services', { method: 'GET' })
+    ]);
+
+    const byCategory = (cat) =>
+      (servicesRes.ok && Array.isArray(servicesRes.body))
+        ? servicesRes.body.filter(s => s.categoria === cat).map(s => s.nombre)
+        : [];
+
+    res.render('services', {
+      title: servicesContent.title,
+      internetPlans: byCategory('internet'),
+      phonePlans: byCategory('telefonia'),
+      mobilePlans: byCategory('celular'),
+      channels: byCategory('canales')
+    });
+  } catch (err) {
+    console.log('Error al cargar servicios:', err);
+    res.render('services', {
+      title: null,
+      internetPlans: [],
+      phonePlans: [],
+      mobilePlans: [],
+      channels: []
+    });
+  }
 };
 
 // ========== CONTROLADOR: PÁGINA DE INFORMACIÓN ==========
 // GET /informacion
-// Muestra información sobre la empresa: misión, visión, valores
-const informationController = (req, res, next) => {
-  res.render('information', siteContent.information);
+const informationController = async (req, res, next) => {
+  const content = await getSiteSection('information');
+  res.render('information', content);
 };
 
 // ========== CONTROLADOR: PÁGINA DE CONTACTO ==========
 // GET /contacto
-// Muestra información de contacto y un formulario para enviar mensajes
-const contactController = (req, res, next) => {
-  res.render('contact', siteContent.contact);
+const contactController = async (req, res, next) => {
+  const content = await getSiteSection('contact');
+  const userId  = req.session.user._id;
+
+  // Si el usuario NO quiere una consulta nueva, buscar la más reciente en la DB
+  if (!req.session.newContactRequest) {
+    try {
+      const r = await requestApi(`/api/asesorias/user/${userId}`, { method: 'GET' });
+      if (r.ok && r.body) {
+        return res.render('contact', { ...content, servicios: [], miAsesoria: r.body });
+      }
+    } catch (e) { /* sin asesoría previa, mostrar formulario */ }
+  }
+
+  // Formulario: limpiar flag y cargar servicios
+  delete req.session.newContactRequest;
+  let servicios = [];
+  try {
+    const sr = await requestApi('/api/services', { method: 'GET' });
+    if (sr.ok && Array.isArray(sr.body)) servicios = sr.body;
+  } catch (e) { /* lista vacía */ }
+  res.render('contact', { ...content, servicios, miAsesoria: null });
 };
 
-// ========== CONTROLADOR: PÁGINA DE PERFIL ==========
-// GET /perfil
-// Muestra los datos del perfil del cliente (después de loguearse)
-const perfilController = (req, res, next) => {
-  res.render('perfil', {
-    title: siteContent.profile.title,
-    message: siteContent.profile.message
-  });
+// POST /contacto — proxy asesoría al API
+const contactSubmitController = async (req, res) => {
+  try {
+    const { ok, status, body } = await requestApi('/api/asesorias', {
+      method: 'POST',
+      body: JSON.stringify({
+        nombre:   req.body.nombre,
+        consulta: req.body.consulta,
+        servicio: req.body.servicio || 'Otra consulta',
+        userId:   req.session.user._id
+      })
+    });
+    res.status(status).json(body);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al enviar asesoría' });
+  }
 };
 
-// ========== FUNCIÓN AUXILIAR: RENDERIZAR LISTA DE CLIENTES ==========
-// Renderiza la vista de la lista de clientes
+// POST /contacto/mensaje — usuario envía mensaje de seguimiento
+const contactMensajeController = async (req, res) => {
+  const userId = req.session.user._id;
+  // Buscar la asesoría activa del usuario
+  try {
+    const r = await requestApi(`/api/asesorias/user/${userId}`, { method: 'GET' });
+    if (r.ok && r.body && r.body._id) {
+      await requestApi(`/api/asesorias/${r.body._id}/mensajes`, {
+        method: 'POST',
+        body: JSON.stringify({ autor: 'cliente', texto: req.body.texto })
+      });
+    }
+  } catch (e) { /* ignorar, redirigir igual */ }
+  res.redirect('/contacto');
+};
+
+// GET /contacto/nueva — el usuario quiere enviar una nueva consulta
+const contactNuevaController = (req, res) => {
+  req.session.newContactRequest = true;
+  res.redirect('/contacto');
+};
+
 // ========== CONTROLADOR: PÁGINA DE PRODUCTOS ==========
 // GET /products
-// Muestra todos los productos disponibles
 const productsController = async (req, res, next) => {
   try {
-    const { ok, status, body } = await requestApi('/api/products', { method: 'GET' });
+    const [productsContent, productsRes] = await Promise.all([
+      getSiteSection('products'),
+      requestApi('/api/products', { method: 'GET' })
+    ]);
 
     const normalizeProducts = (products) => {
-      if (!Array.isArray(products)) {
-        return [];
-      }
-
+      if (!Array.isArray(products)) return [];
       return products.map(product => ({
         ...product,
-        nombre: product?.nombre || siteContent.products.fallbackName,
-        descripcion: product?.descripcion || siteContent.products.fallbackDescription,
+        nombre: product?.nombre || productsContent.fallbackName,
+        descripcion: product?.descripcion || productsContent.fallbackDescription,
         precio: Number(product?.precio) || 0,
-        imagen: product?.imagen || siteContent.products.placeholderImage,
+        imagen: product?.imagen || productsContent.placeholderImage,
         stock: Number(product?.stock) || 0
       }));
     };
 
-    if (ok) {
+    if (productsRes.ok) {
       res.render('products', {
-        title: siteContent.products.title,
-        products: normalizeProducts(body)
+        title: productsContent.title,
+        products: normalizeProducts(productsRes.body)
       });
     } else {
-      console.log('Error al obtener los productos:', status);
-      res.render('products', { title: siteContent.products.title, products: [] });
+      console.log('Error al obtener los productos:', productsRes.status);
+      res.render('products', { title: productsContent.title, products: [] });
     }
   } catch (err) {
     console.log('Error al obtener los productos:', err);
-    res.render('products', { title: siteContent.products.title, products: [] });
+    res.render('products', { title: null, products: [] });
   }
 };
 
 // ========== CONTROLADOR: PÁGINA DEL CARRITO ==========
 // GET /cart
-// Muestra el carrito de compras
 const cartController = async (req, res, next) => {
   const sessionId = ensureCartSessionId(req, res);
+  const paypalClientId = getPaypalClientId();
 
   try {
-    const { ok, status, body } = await requestApi(`/api/cart/${sessionId}`, { method: 'GET' });
+    const [cartContent, cartRes] = await Promise.all([
+      getSiteSection('cart'),
+      requestApi(`/api/cart/${sessionId}`, { method: 'GET' })
+    ]);
 
-    if (ok) {
-      res.render('cart', { title: siteContent.cart.title, cart: body, sessionId });
+    if (cartRes.ok) {
+      res.render('cart', { title: cartContent.title, cart: cartRes.body, sessionId, paypalClientId });
       return;
     }
 
-    console.log('Error al obtener el carrito:', status);
-    res.render('cart', { title: siteContent.cart.title, cart: { items: [], total: 0 }, sessionId });
+    console.log('Error al obtener el carrito:', cartRes.status);
+    res.render('cart', { title: cartContent.title, cart: { items: [], total: 0 }, sessionId, paypalClientId });
   } catch (err) {
     console.log('Error al obtener el carrito:', err);
-    res.render('cart', { title: siteContent.cart.title, cart: { items: [], total: 0 }, sessionId });
+    res.render('cart', { title: null, cart: { items: [], total: 0 }, sessionId, paypalClientId });
   }
 };
 
-// ========== CONTROLADOR: EJECUTAR SPEEDTEST CLI ==========
-// REMOVIDO: reemplazado por LibreSpeed (frontend + /backend/* endpoints)
+// ========== CONTROLADORES PROXY: OPERACIONES DEL CARRITO ==========
+// POST /cart/add
+const cartAddController = async (req, res) => {
+  const sessionId = ensureCartSessionId(req, res);
+  try {
+    const { status, body } = await requestApi('/api/cart/add', {
+      method: 'POST',
+      body: JSON.stringify({ ...req.body, sessionId })
+    });
+    res.status(status).json(body);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al agregar al carrito' });
+  }
+};
+
+// PUT /cart/update
+const cartUpdateController = async (req, res) => {
+  const sessionId = ensureCartSessionId(req, res);
+  try {
+    const { status, body } = await requestApi('/api/cart/update', {
+      method: 'PUT',
+      body: JSON.stringify({ ...req.body, sessionId })
+    });
+    res.status(status).json(body);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al actualizar carrito' });
+  }
+};
+
+// DELETE /cart/remove
+const cartRemoveController = async (req, res) => {
+  const sessionId = ensureCartSessionId(req, res);
+  try {
+    const { status, body } = await requestApi('/api/cart/remove', {
+      method: 'DELETE',
+      body: JSON.stringify({ ...req.body, sessionId })
+    });
+    res.status(status).json(body);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al eliminar producto del carrito' });
+  }
+};
+
+// POST /cart/clear
+const cartClearController = async (req, res) => {
+  const sessionId = ensureCartSessionId(req, res);
+  try {
+    const { status, body } = await requestApi('/api/cart/clear', {
+      method: 'POST',
+      body: JSON.stringify({ ...req.body, sessionId })
+    });
+    res.status(status).json(body);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al vaciar carrito' });
+  }
+};
 
 module.exports = {
-  homepageController,       // GET / - Página de inicio
-  productsController,       // GET /products - Página de productos
-  cartController,           // GET /cart - Página del carrito
-  servicesController,       // GET /servicios - Página de servicios
-  contactController         // GET /contacto - Página de contacto/asesorías
+  homepageController,
+  productsController,
+  cartController,
+  cartAddController,
+  cartUpdateController,
+  cartRemoveController,
+  cartClearController,
+  servicesController,
+  informationController,
+  contactController,
+  contactSubmitController,
+  contactMensajeController,
+  contactNuevaController
 };

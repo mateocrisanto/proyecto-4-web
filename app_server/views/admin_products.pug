@@ -34,7 +34,10 @@ block content
               input.form-control(type='number' name='stock' min='0' required placeholder='0')
             .col-md-4
               label.form-label Categoría
-              input.form-control(type='text' name='categoria' required placeholder='Ej: Redes, Accesorios')
+              select.form-select(name='categoria' required)
+                option(value='' disabled selected) Selecciona una categoría
+                each cat in categories
+                  option(value=cat)= cat
             .col-12
               label.form-label Descripción
               textarea.form-control(name='descripcion' rows='2' required placeholder='Descripción del producto')
@@ -49,30 +52,106 @@ block content
                 i.fas.fa-plus.me-1
                 | Añadir Producto
 
-    //- Lista de productos
+    //- Lista de productos agrupada por categoría
     if products && products.length > 0
-      .row.g-3
-        each product in products
-          .col-lg-3.col-md-4.col-sm-6
-            .card.h-100(style='border:1px solid rgba(113,228,244,0.15)')
-              img.card-img-top(
-                src=(product.imagen || '/images/placeholder.png')
-                alt=(product.nombre)
-                style='height:160px;object-fit:cover'
-                onerror="this.src='/images/placeholder.png'"
-              )
-              .card-body
-                h6.card-title= product.nombre
-                p.card-text.small.text-muted= product.descripcion
-                .d-flex.justify-content-between.align-items-center.mt-2
-                  strong(style='color:var(--c-cyan)') $#{Number(product.precio).toFixed(2)}
-                  span.badge.bg-secondary Stock: #{product.stock}
-              .card-footer
-                form(action=`/admin/products/delete/${product._id}` method='POST')
-                  button.btn.btn-danger.btn-sm.w-100(type='submit' onclick='return confirm("¿Eliminar este producto?")')
-                    i.fas.fa-trash.me-1
-                    | Eliminar
+      - const productCats = [...new Set(products.map(p => p.categoria))].sort()
+      each cat in productCats
+        - const catProducts = products.filter(p => p.categoria === cat)
+        .mb-4
+          h5.mb-3
+            i.fas.fa-tag.me-2(style='color:var(--c-cyan)')
+            = cat
+            span.badge.ms-2.rounded-pill(style='background:var(--c-cyan);color:#0d0d14;font-size:.7rem')= catProducts.length
+          .row.g-3
+            each product in catProducts
+              .col-lg-3.col-md-4.col-sm-6
+                .card.h-100(style='border:1px solid rgba(113,228,244,0.15)')
+                  img.card-img-top(
+                    src=(product.imagen || '/images/placeholder.png')
+                    alt=(product.nombre)
+                    style='height:160px;object-fit:cover'
+                    onerror="this.src='/images/placeholder.png'"
+                  )
+                  .card-body
+                    h6.card-title= product.nombre
+                    p.card-text.small.text-muted= product.descripcion
+                    .d-flex.justify-content-between.align-items-center.mt-2
+                      strong(style='color:var(--c-cyan)') $#{Number(product.precio).toFixed(2)}
+                      span.badge.bg-secondary Stock: #{product.stock}
+                  .card-footer.d-flex.gap-2
+                    button.btn.btn-outline-primary.btn-sm.flex-grow-1(
+                      type='button'
+                      onclick=`openEditProduct(${JSON.stringify(product)})`
+                    )
+                      i.fas.fa-edit.me-1
+                      | Editar
+                    form(action=`/admin/products/delete/${product._id}` method='POST' class='flex-grow-1')
+                      button.btn.btn-danger.btn-sm.w-100(type='submit' onclick='return confirm("¿Eliminar este producto?")')
+                        i.fas.fa-trash.me-1
+                        | Eliminar
+          hr(style='border-color:rgba(255,255,255,0.08)')
     else
       .alert.text-center(style='background:rgba(113,228,244,0.05);border:1px solid rgba(113,228,244,0.15);color:#a0a0b8')
         i.fas.fa-box-open.me-2
         | No hay productos. Añade el primero arriba.
+
+  //- Modal de edición
+  .modal.fade#editProductModal(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Producto
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        form#editProductForm(method='POST' enctype='multipart/form-data')
+          .modal-body
+            .row.g-3
+              .col-md-5
+                label.form-label Nombre
+                input.form-control#editNombre(type='text' name='nombre' required)
+              .col-md-2
+                label.form-label Precio ($)
+                input.form-control#editPrecio(type='number' name='precio' step='0.01' min='0' required)
+              .col-md-2
+                label.form-label Stock
+                input.form-control#editStock(type='number' name='stock' min='0' required)
+              .col-md-3
+                label.form-label Categoría
+                select.form-select#editCategoria(name='categoria' required)
+                  each cat in categories
+                    option(value=cat)= cat
+              .col-12
+                label.form-label Descripción
+                textarea.form-control#editDescripcion(name='descripcion' rows='2' required)
+              .col-md-12
+                label.form-label Imagen actual
+                img#editImgPreview(src='/images/placeholder.png' style='height:80px;object-fit:contain;display:block;margin-bottom:.5rem')
+              .col-md-6
+                label.form-label Cambiar imagen (archivo)
+                input.form-control(type='file' name='imagen' accept='image/*')
+              .col-md-6
+                label.form-label O nueva URL de imagen
+                input.form-control#editImagenUrl(type='text' name='imagenUrl' placeholder='https://...')
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(type='submit')
+              i.fas.fa-save.me-1
+              | Guardar cambios
+
+  script.
+    function openEditProduct(product) {
+      document.getElementById('editNombre').value      = product.nombre || '';
+      document.getElementById('editPrecio').value      = product.precio || 0;
+      document.getElementById('editStock').value       = product.stock  || 0;
+      document.getElementById('editDescripcion').value = product.descripcion || '';
+      document.getElementById('editImagenUrl').value   = product.imagen || '';
+      document.getElementById('editImgPreview').src    = product.imagen || '/images/placeholder.png';
+
+      const sel = document.getElementById('editCategoria');
+      for (let opt of sel.options) opt.selected = (opt.value === product.categoria);
+
+      document.getElementById('editProductForm').action = '/admin/products/edit/' + product._id;
+      new bootstrap.Modal(document.getElementById('editProductModal')).show();
+    }
+

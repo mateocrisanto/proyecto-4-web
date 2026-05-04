@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  .container.py-5
+    .row.justify-content-center
+      .col-md-6.text-center
+        .card.shadow.p-5
+          .card-body
+            i.fas.fa-check-circle.fa-5x.mb-4(style='color:var(--c-cyan)')
+            h1.display-5.mb-3 ¡Pago exitoso!
+            p.lead.text-muted Tu pedido ha sido procesado correctamente. Nos pondremos en contacto contigo pronto.
+            hr.my-4
+            a.btn.btn-primary.btn-lg.me-3(href='/products') Seguir comprando
+            a.btn.btn-outline-secondary.btn-lg(href='/') Ir al inicio

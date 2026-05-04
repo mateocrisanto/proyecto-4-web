@@ -8,6 +8,7 @@ require('./esquema_products');
 require('./esquema_cart');
 require('./esquema_auth');
 require('./esquema_services');
+require('./esquema_sitecontent');
 
 const dbURI =
   process.env.MONGODB_URI ||

@@ -46,7 +46,11 @@ block content
               .d-flex.justify-content-between.mb-4
                 strong.h5 Total:
                 span.h5 $#{ (cart.total * 1.15).toFixed(2) }
-              button.btn.btn-success.btn-lg.w-100 Proceder al pago
+              if paypalClientId
+                #paypal-button-container.mb-3
+              else
+                .alert.alert-warning.small.mb-3
+                  | PayPal no esta configurado todavia en este entorno. Agrega un Client ID sandbox valido para habilitar el pago.
               button.btn.btn-outline-secondary.btn-lg.w-100.mt-2(type='button', onclick='clearCart()') Vaciar carrito
     else
       .row
@@ -63,80 +67,74 @@ block content
     function updateQuantity(productId, newQuantity) {
       if (newQuantity < 1) return;
 
-      fetch('/api/cart/update', {
+      fetch('/cart/update', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          productId: productId,
-          cantidad: parseInt(newQuantity)
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, productId, cantidad: parseInt(newQuantity) })
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data._id) {
-          location.reload();
-        } else {
-          alert('Error al actualizar cantidad');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error de conexión');
-      });
+      .then(r => r.json())
+      .then(data => { if (data._id) location.reload(); else alert('Error al actualizar cantidad'); })
+      .catch(() => alert('Error de conexión'));
     }
 
     function removeItem(productId) {
-      if (!confirm('¿Estás seguro de que quieres eliminar este producto del carrito?')) return;
-
-      fetch('/api/cart/remove', {
+      if (!confirm('¿Eliminar este producto del carrito?')) return;
+      fetch('/cart/remove', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          productId: productId
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, productId })
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data._id) {
-          location.reload();
-        } else {
-          alert('Error al eliminar producto');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error de conexión');
-      });
+      .then(r => r.json())
+      .then(data => { if (data._id) location.reload(); else alert('Error al eliminar producto'); })
+      .catch(() => alert('Error de conexión'));
     }
 
     function clearCart() {
-      if (!confirm('¿Estás seguro de que quieres vaciar el carrito?')) return;
-
-      fetch('/api/cart/clear', {
+      if (!confirm('¿Vaciar el carrito?')) return;
+      fetch('/cart/clear', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionId
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data._id) {
-          location.reload();
-        } else {
-          alert('Error al vaciar carrito');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error de conexión');
-      });
+      .then(r => r.json())
+      .then(data => { if (data._id) location.reload(); else alert('Error al vaciar carrito'); })
+      .catch(() => alert('Error de conexión'));
     }
+
+block scripts
+  if paypalClientId && cart && cart.items && cart.items.length > 0
+    script(src=`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`)
+    script.
+      paypal.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+        createOrder: function() {
+          return fetch('/pago/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) { alert('Error: ' + data.error); return; }
+            return data.orderID;
+          });
+        },
+        onApprove: function(data) {
+          return fetch('/pago/capturar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderID: data.orderID })
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(result) {
+            if (result.success) {
+              window.location.href = '/pago/exito';
+            } else {
+              alert('Error al procesar el pago. Intenta nuevamente.');
+            }
+          });
+        },
+        onError: function(err) {
+          console.error('PayPal error:', err);
+          alert('Ocurrió un error con PayPal. Intenta nuevamente.');
+        }
+      }).render('#paypal-button-container');

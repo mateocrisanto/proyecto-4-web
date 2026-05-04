@@ -58,8 +58,9 @@ html(lang='es' data-bs-theme='dark')
               a.nav-link(href='/servicios') Servicios
             li.nav-item
               a.nav-link(href='/products') Productos
-            li.nav-item
-              a.nav-link(href='/contacto') Asesorias
+            if !(sessionUser && sessionUser.role === 'admin')
+              li.nav-item
+                a.nav-link(href='/contacto') Asesorias
             li.nav-item
               //- Carrito con badge: muestra la cantidad de ítems si hay alguno
               a.nav-link(href='/cart', id='cart-link')
@@ -116,7 +117,29 @@ html(lang='es' data-bs-theme='dark')
     //- app-content en style.css tiene padding-top para compensar el navbar fixed-top
     main.app-content
       block content
-    //- ── FOOTER ──────────────────────────────────────────────────────────────
-    footer.footer.py-3.bg-dark.text-white
-      .container.text-center
-        span NEW TECH
+    //- ── FOOTER PLAYER ───────────────────────────────────────────────────────
+    //- Canvas: fondo animado con barras de sonido (Web Audio API)
+    //- Izquierda: mini reproductor | Derecha: marca + copyright
+    footer.footer-player
+      canvas#footer-canvas
+      audio#footer-audio(preload='none' crossorigin='anonymous')
+      .footer-inner
+        //- ── LADO IZQUIERDO: mini reproductor ─────────────────────────────
+        .footer-left
+          .fp-controls
+            button#fp-prev.fp-btn(type='button' aria-label='Anterior')
+              i.fas.fa-step-backward
+            button#fp-play.fp-btn.fp-btn--play(type='button' aria-label='Play/Pause')
+              i.fas.fa-play
+            button#fp-next.fp-btn(type='button' aria-label='Siguiente')
+              i.fas.fa-step-forward
+          .fp-info
+            span#fp-title.fp-title KLICK AUD
+            .fp-progress-bar#fp-progress
+              .fp-progress-fill#fp-progress-fill
+        //- ── LADO DERECHO: marca y copyright ──────────────────────────────
+        .footer-right
+          span.footer-brand-name NEW TECH
+          span.footer-copy © 2026
+    script(src='/javascripts/footer-player.js')
+    block scripts

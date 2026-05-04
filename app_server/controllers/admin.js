@@ -54,6 +54,9 @@ const requireAdmin = (req, res, next) => {
     res.status(403).render('error', { message: 'Acceso restringido a administradores', error: { status: 403 } });
 };
 
+// ── CATEGORÍAS DE PRODUCTOS (lista prestablecida) ────────────────────────────
+const PRODUCT_CATEGORIES = ['Redes', 'Accesorios', 'Kits', 'Equipos', 'Telefonía', 'Otros'];
+
 // ── PRODUCTOS ────────────────────────────────────────────────────────────────
 // Gestión del catálogo de productos visible en /products
 
@@ -64,10 +67,11 @@ const adminProductsGet = async (req, res) => {
         res.render('admin_products', {
             title: 'Gestión de Productos',
             products: ok && Array.isArray(body) ? body : [],
+            categories: PRODUCT_CATEGORIES,
             error: ok ? null : 'Error al cargar productos'
         });
     } catch (err) {
-        res.render('admin_products', { title: 'Gestión de Productos', products: [], error: 'Error al conectar con la API' });
+        res.render('admin_products', { title: 'Gestión de Productos', products: [], categories: PRODUCT_CATEGORIES, error: 'Error al conectar con la API' });
     }
 };
 
@@ -87,6 +91,43 @@ const adminProductsCreate = [
         try {
             await requestApi('/api/products', { method: 'POST', body: JSON.stringify(postData) });
         } catch (e) { /* ignore, redirect anyway */ }
+        res.redirect('/admin/products');
+    }
+];
+
+// GET /admin/products/edit/:id
+const adminProductsEditGet = async (req, res) => {
+    try {
+        const { ok, body } = await requestApi(`/api/products/${req.params.id}`, { method: 'GET' });
+        if (!ok) return res.redirect('/admin/products');
+        res.render('admin_products', {
+            title: 'Gestión de Productos',
+            products: await requestApi('/api/products', { method: 'GET' }).then(r => r.ok && Array.isArray(r.body) ? r.body : []),
+            categories: PRODUCT_CATEGORIES,
+            editProduct: body,
+            error: null
+        });
+    } catch (err) {
+        res.redirect('/admin/products');
+    }
+};
+
+// POST /admin/products/edit/:id  (con imagen opcional)
+const adminProductsEditPost = [
+    upload.single('imagen'),
+    async (req, res) => {
+        const imagenPath = req.file ? `/images/${req.file.filename}` : (req.body.imagenUrl || undefined);
+        const putData = {
+            nombre: req.body.nombre,
+            descripcion: req.body.descripcion,
+            precio: parseFloat(req.body.precio) || 0,
+            categoria: req.body.categoria,
+            stock: parseInt(req.body.stock) || 0
+        };
+        if (imagenPath) putData.imagen = imagenPath;
+        try {
+            await requestApi(`/api/products/${req.params.id}`, { method: 'PUT', body: JSON.stringify(putData) });
+        } catch (e) { /* ignore */ }
         res.redirect('/admin/products');
     }
 ];
@@ -127,6 +168,17 @@ const adminServicesCreate = async (req, res) => {
     res.redirect('/admin/services');
 };
 
+// POST /admin/services/edit/:id
+const adminServicesEditPost = async (req, res) => {
+    try {
+        await requestApi(`/api/services/${req.params.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ nombre: req.body.nombre, descripcion: req.body.descripcion, categoria: req.body.categoria })
+        });
+    } catch (e) { /* ignore */ }
+    res.redirect('/admin/services');
+};
+
 // POST /admin/services/delete/:id
 const adminServicesDelete = async (req, res) => {
     try {
@@ -136,8 +188,6 @@ const adminServicesDelete = async (req, res) => {
 };
 
 // ── ASESORÍAS ────────────────────────────────────────────────────────────────
-// Solicitudes de contacto enviadas por clientes desde /contacto
-// Solo lectura + eliminación (no se pueden crear desde admin)
 
 // GET /admin/asesorias
 const adminAsesoriasGet = async (req, res) => {
@@ -157,6 +207,17 @@ const adminAsesoriasGet = async (req, res) => {
 const adminAsesoriasDelete = async (req, res) => {
     try {
         await requestApi(`/api/asesorias/${req.params.id}`, { method: 'DELETE' });
+    } catch (e) { /* ignore */ }
+    res.redirect('/admin/asesorias');
+};
+
+// POST /admin/asesorias/:id/mensaje — admin envía mensaje al chat
+const adminAsesoriasMensaje = async (req, res) => {
+    try {
+        await requestApi(`/api/asesorias/${req.params.id}/mensajes`, {
+            method: 'POST',
+            body: JSON.stringify({ autor: 'admin', texto: req.body.texto })
+        });
     } catch (e) { /* ignore */ }
     res.redirect('/admin/asesorias');
 };
@@ -191,12 +252,16 @@ module.exports = {
     requireAdmin,
     adminProductsGet,
     adminProductsCreate,
+    adminProductsEditGet,
+    adminProductsEditPost,
     adminProductsDelete,
     adminServicesGet,
     adminServicesCreate,
+    adminServicesEditPost,
     adminServicesDelete,
     adminAsesoriasGet,
     adminAsesoriasDelete,
+    adminAsesoriasMensaje,
     adminUsersGet,
     adminUsersDelete
 };

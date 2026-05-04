@@ -26,17 +26,30 @@ const router = express.Router();
 const ctrlMain      = require('../controllers/main');
 const ctrlSpeedtest = require('../controllers/speedtest_backend');
 const ctrlProfile   = require('../controllers/profile');
+const ctrlPaypal    = require('../controllers/paypal');
 
 /* Páginas principales */
 router.get('/', ctrlMain.homepageController);
 router.get('/products', ctrlMain.productsController);
 router.get('/cart', ctrlMain.cartController);
+router.post('/cart/add',    ctrlMain.cartAddController);
+router.put('/cart/update',  ctrlMain.cartUpdateController);
+router.delete('/cart/remove', ctrlMain.cartRemoveController);
+router.post('/cart/clear',  ctrlMain.cartClearController);
 router.get('/servicios', ctrlMain.servicesController);
 router.get('/contacto', ctrlMain.contactController);
+router.post('/contacto', ctrlMain.contactSubmitController);
+router.post('/contacto/mensaje', ctrlMain.contactMensajeController);
+router.get('/contacto/nueva', ctrlMain.contactNuevaController);
 
 /* Perfil — GET: muestra el formulario | POST: procesa cambios */
 router.get('/perfil', ctrlProfile.profileGet);
 router.post('/perfil', ctrlProfile.profileUpdate);
+
+/* PayPal — crear y capturar orden */
+router.post('/pago/crear',    ctrlPaypal.crearOrden);
+router.post('/pago/capturar', ctrlPaypal.capturarOrden);
+router.get('/pago/exito',     ctrlPaypal.pagoExito);
 
 /* LibreSpeed: el navegador solicita este JS al cargar la página del speedtest */
 router.get('/speedtest_worker.js', (req, res) => {

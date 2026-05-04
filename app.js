@@ -49,7 +49,11 @@ app.use(logger('dev'));                              // Log de peticiones HTTP e
 app.use(express.json());                             // Parsear body JSON (para la REST API)
 app.use(express.urlencoded({ extended: false }));    // Parsear body de formularios HTML
 app.use(cookieParser());                             // Parsear cookies (cartSessionId, etc.)
-app.use(express.static(path.join(__dirname, 'public'))); // Servir CSS, JS, imágenes desde public/
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: function (res, filePath) {
+    if (filePath.endsWith('.mp3')) res.setHeader('Content-Type', 'audio/mpeg');
+  }
+})); // Servir CSS, JS, imágenes desde public/
 
 // ── SESIÓN DE USUARIO ─────────────────────────────────────────────────────────
 // express-session guarda en memoria (por defecto) un objeto req.session por usuario.

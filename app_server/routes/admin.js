@@ -22,18 +22,22 @@ const ctrl    = require('../controllers/admin');
 router.use(ctrl.requireAdmin);
 
 // ── Productos ─────────────────────────────────────────────────────────────────
-router.get('/products',              ctrl.adminProductsGet);    // lista de productos
-router.post('/products',             ctrl.adminProductsCreate); // crear producto (con imagen)
-router.post('/products/delete/:id',  ctrl.adminProductsDelete); // eliminar producto
+router.get('/products',              ctrl.adminProductsGet);       // lista de productos
+router.post('/products',             ctrl.adminProductsCreate);    // crear producto (con imagen)
+router.get('/products/edit/:id',     ctrl.adminProductsEditGet);   // cargar producto para editar
+router.post('/products/edit/:id',    ctrl.adminProductsEditPost);  // guardar cambios del producto
+router.post('/products/delete/:id',  ctrl.adminProductsDelete);    // eliminar producto
 
 // ── Servicios ─────────────────────────────────────────────────────────────────
-router.get('/services',              ctrl.adminServicesGet);    // lista de planes
-router.post('/services',             ctrl.adminServicesCreate); // crear plan
-router.post('/services/delete/:id',  ctrl.adminServicesDelete); // eliminar plan
+router.get('/services',              ctrl.adminServicesGet);       // lista de planes
+router.post('/services',             ctrl.adminServicesCreate);    // crear plan
+router.post('/services/edit/:id',    ctrl.adminServicesEditPost);  // guardar cambios del plan
+router.post('/services/delete/:id',  ctrl.adminServicesDelete);    // eliminar plan
 
 // ── Asesorías (solicitudes de clientes) ───────────────────────────────────────
-router.get('/asesorias',             ctrl.adminAsesoriasGet);    // ver todas
-router.post('/asesorias/delete/:id', ctrl.adminAsesoriasDelete); // eliminar
+router.get('/asesorias',                  ctrl.adminAsesoriasGet);      // ver todas
+router.post('/asesorias/delete/:id',      ctrl.adminAsesoriasDelete);   // eliminar
+router.post('/asesorias/:id/mensaje',     ctrl.adminAsesoriasMensaje);  // enviar mensaje
 
 // ── Usuarios ──────────────────────────────────────────────────────────────────
 router.get('/users',                 ctrl.adminUsersGet);    // ver todos los usuarios

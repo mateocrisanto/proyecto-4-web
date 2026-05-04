@@ -10,7 +10,25 @@
  */
 
 const { requestApi } = require('../lib/apiClient');
-const siteContent = require('../config/siteContent');
+
+// ========== FUNCIÓN AUXILIAR: OBTENER CONTENIDO DE USUARIOS ==========
+// Consulta la sección 'users' en la DB. Devuelve {} si no existe o falla.
+const getUsersContent = async () => {
+  try {
+    const { ok, body } = await requestApi('/api/sitecontent/users', { method: 'GET' });
+    if (ok && body && typeof body === 'object') {
+      // createSuccessMessage en la DB es un template con {id}; lo convertimos a función
+      return {
+        ...body,
+        createSuccessMessage: (id) =>
+          body.createSuccessMessage
+            ? body.createSuccessMessage.replace('{id}', id)
+            : `ID: ${id}`
+      };
+    }
+  } catch (_) { /* fall through */ }
+  return {};
+};
 
 // ========== FUNCIÓN AUXILIAR: CONVERTIR A ARRAY ==========
 // Si recibe un valor simple, lo convierte a array
@@ -24,10 +42,11 @@ const toArray = (value) => {
 // ========== CONTROLADOR: MOSTRAR FORMULARIO DE REGISTRO ==========
 // GET /users/add
 // Renderiza la página con el formulario para registrar un nuevo cliente
-const usersAdd = (req, res) => {
-  res.render('usersCreate', { 
-        title: siteContent.users.createTitle,
-        message: siteContent.users.createMessage
+const usersAdd = async (req, res) => {
+  const uc = await getUsersContent();
+  res.render('usersCreate', {
+    title: uc.createTitle,
+    message: uc.createMessage
   });
 };
 
@@ -52,6 +71,8 @@ const usersDoAdd = async (req, res) => {
         }
     };
 
+    const uc = await getUsersContent();
+
     try {
         const { ok, status, body } = await requestApi('/api/users', {
             method: 'POST',
@@ -60,8 +81,8 @@ const usersDoAdd = async (req, res) => {
 
         if (ok && status === 201) {
             res.render('usersCreate', {
-                message: siteContent.users.createSuccessMessage(body?._id || ''),
-                title: siteContent.users.createTitle,
+                message: uc.createSuccessMessage(body?._id || ''),
+                title: uc.createTitle,
                 action: '/users/add',
                 submitText: 'Enviar registro',
                 user: {}
@@ -71,13 +92,13 @@ const usersDoAdd = async (req, res) => {
 
         console.log('Error al registrar cliente: ', status, body);
         res.render('error', {
-            message: siteContent.users.registrationError,
+            message: uc.registrationError,
             error: { status }
         });
     } catch (err) {
         console.log('Error al registrar cliente: ', err);
         res.render('error', {
-            message: siteContent.users.registrationError,
+            message: uc.registrationError,
             error: { status: 500 }
         });
     }
@@ -85,10 +106,10 @@ const usersDoAdd = async (req, res) => {
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR FORMULARIO DE USUARIO ==========
 // Reutiliza la vista de creación para edición y creación con valores dinámicos
-const renderUsersForm = (req, res, responseBody, action, submitText) => {
+const renderUsersForm = (req, res, responseBody, action, submitText, uc) => {
     res.render('usersCreate', {
-        title: action.includes('/edit/') ? siteContent.users.editTitle : siteContent.users.createTitle,
-        message: action.includes('/edit/') ? siteContent.users.editMessage : siteContent.users.createMessage,
+        title: action.includes('/edit/') ? uc.editTitle : uc.createTitle,
+        message: action.includes('/edit/') ? uc.editMessage : uc.createMessage,
         action,
         submitText,
         user: responseBody
@@ -98,21 +119,22 @@ const renderUsersForm = (req, res, responseBody, action, submitText) => {
 // ========== CONTROLADOR: OBTENER CLIENTE PARA EDITAR ==========
 // GET /users/edit/:userId
 const usersEdit = async (req, res) => {
+    const uc = await getUsersContent();
     try {
         const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
             method: 'GET'
         });
 
         if (ok && body) {
-            renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios');
+            renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios', uc);
             return;
         }
 
         console.log('Status code: ', status);
-        res.render('error', { message: siteContent.users.notFound, error: { status } });
+        res.render('error', { message: uc.notFound, error: { status } });
     } catch (err) {
         console.log('Error: ', err);
-        res.render('error', { message: siteContent.users.searchError, error: { status: 500 } });
+        res.render('error', { message: uc.searchError, error: { status: 500 } });
     }
 };
 
@@ -134,6 +156,8 @@ const doUsersEdit = async (req, res) => {
         }
     };
 
+    const uc = await getUsersContent();
+
     try {
         const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
             method: 'PUT',
@@ -141,19 +165,19 @@ const doUsersEdit = async (req, res) => {
         });
 
         if (ok && status === 200) {
-            renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios');
+            renderUsersForm(req, res, body, `/users/edit/${req.params.userId}`, 'Guardar cambios', uc);
             return;
         }
 
         console.log('Error: ', status, body);
         res.render('error', {
-            message: siteContent.users.updateError,
+            message: uc.updateError,
             error: { status }
         });
     } catch (err) {
         console.log('Error: ', err);
         res.render('error', {
-            message: siteContent.users.updateError,
+            message: uc.updateError,
             error: { status: 500 }
         });
     }
@@ -161,10 +185,10 @@ const doUsersEdit = async (req, res) => {
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR PÁGINA DE ELIMINACIÓN ==========
 // Muestra los detalles del cliente a eliminar para confirmación
-const renderUsersDelete = (req, res, responseBody) => {
+const renderUsersDelete = (req, res, responseBody, uc) => {
     res.render('usersDelete', {
-        title: siteContent.users.deleteTitle,
-        message: siteContent.users.deleteMessage,
+        title: uc.deleteTitle,
+        message: uc.deleteMessage,
         nombre: responseBody.nombre,
         apellido: responseBody.apellido,
         identificacion: responseBody.identificacion,
@@ -180,21 +204,22 @@ const renderUsersDelete = (req, res, responseBody) => {
 // GET /users/delete/:userId
 // Obtiene datos del cliente desde la API y muestra página de confirmación
 const usersDelete = async (req, res) => {
+    const uc = await getUsersContent();
     try {
         const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
             method: 'GET'
         });
 
         if (ok && body) {
-            renderUsersDelete(req, res, body);
+            renderUsersDelete(req, res, body, uc);
             return;
         }
 
         console.log('Status code: ', status);
-        res.render('error', { message: siteContent.users.notFound, error: { status } });
+        res.render('error', { message: uc.notFound, error: { status } });
     } catch (err) {
         console.log('Error: ', err);
-        res.render('error', { message: siteContent.users.searchError, error: { status: 500 } });
+        res.render('error', { message: uc.searchError, error: { status: 500 } });
     }
 };
 
@@ -202,31 +227,32 @@ const usersDelete = async (req, res) => {
 // POST /users/delete/:userId
 // Envía petición DELETE a la API para eliminar el cliente
 const doUsersDelete = async (req, res) => {
+    const uc = await getUsersContent();
     try {
         const { ok, status } = await requestApi(`/api/users/${req.params.userId}`, {
             method: 'DELETE'
         });
 
         if (ok && status === 204) {
-        console.log(siteContent.users.deleteSuccess);
-        res.redirect('/users');
-        return;
+            console.log(uc.deleteSuccess);
+            res.redirect('/users');
+            return;
         }
 
         console.log('Status code: ', status);
-        res.render('error', { message: siteContent.users.deleteError, error: { status } });
+        res.render('error', { message: uc.deleteError, error: { status } });
     } catch (err) {
         console.log('Error: ', err);
-        res.render('error', { message: siteContent.users.deleteError, error: { status: 500 } });
+        res.render('error', { message: uc.deleteError, error: { status: 500 } });
     }
 };
 
 // ========== FUNCIÓN AUXILIAR: RENDERIZAR PÁGINA DE PERFIL ==========
 // Muestra los datos completos del cliente
-const renderUserProfile = (req, res, responseBody) => {
+const renderUserProfile = (req, res, responseBody, uc) => {
     res.render('perfil', {
-        title: siteContent.users.profileTitle,
-        user: responseBody  // Pasar todo el objeto del cliente a la vista
+        title: uc.profileTitle,
+        user: responseBody
     });
 };
 
@@ -234,21 +260,22 @@ const renderUserProfile = (req, res, responseBody) => {
 // GET /users/profile/:userId
 // Obtiene los datos del cliente desde la API y muestra su perfil
 const userProfile = async (req, res) => {
+    const uc = await getUsersContent();
     try {
         const { ok, status, body } = await requestApi(`/api/users/${req.params.userId}`, {
             method: 'GET'
         });
 
         if (ok && body) {
-            renderUserProfile(req, res, body);
+            renderUserProfile(req, res, body, uc);
             return;
         }
 
         console.log('Status code: ', status);
-        res.render('error', { message: siteContent.users.notFound, error: { status } });
+        res.render('error', { message: uc.notFound, error: { status } });
     } catch (err) {
         console.log('Error: ', err);
-        res.render('error', { message: siteContent.users.profileError, error: { status: 500 } });
+        res.render('error', { message: uc.profileError, error: { status: 500 } });
     }
 };
 

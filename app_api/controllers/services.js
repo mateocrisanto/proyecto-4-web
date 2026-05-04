@@ -24,6 +24,25 @@ const servicesCreate = async (req, res) => {
     }
 };
 
+// PUT /api/services/:id
+const servicesUpdate = async (req, res) => {
+    const { nombre, descripcion, categoria } = req.body;
+    if (!nombre || !categoria) {
+        return res.status(400).json({ message: 'nombre y categoria son requeridos' });
+    }
+    try {
+        const service = await Service.findByIdAndUpdate(
+            req.params.id,
+            { nombre, descripcion, categoria },
+            { new: true, runValidators: true }
+        );
+        if (!service) return res.status(404).json({ message: 'Servicio no encontrado' });
+        res.status(200).json(service);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
 // DELETE /api/services/:id
 const servicesDelete = async (req, res) => {
     try {
@@ -35,4 +54,4 @@ const servicesDelete = async (req, res) => {
     }
 };
 
-module.exports = { servicesList, servicesCreate, servicesDelete };
+module.exports = { servicesList, servicesCreate, servicesUpdate, servicesDelete };
