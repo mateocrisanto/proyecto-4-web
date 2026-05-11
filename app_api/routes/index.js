@@ -7,6 +7,9 @@ const ctrlAsesorias = require('../controllers/asesorias');
 const ctrlAuth = require('../controllers/auth');
 const ctrlServices = require('../controllers/services');
 const ctrlSiteContent = require('../controllers/sitecontent');
+const ctrlSearch = require('../controllers/search');
+const ctrlChatbot = require('../controllers/chatbot');
+const ctrlStats = require('../controllers/stats');
 
 // rutas de autenticación
 router.post('/auth/register', ctrlAuth.register);
@@ -20,6 +23,10 @@ router
     .route('/products')
     .post(ctrlProducts.productsCreate)
     .get(ctrlProducts.productsList);
+
+// rutas para búsqueda y filtrado de productos (ANTES de :productid)
+router.get('/products/search', ctrlSearch.searchProducts);
+router.get('/products/categories', ctrlSearch.getCategories);
 
 router
     .route('/products/:productid')
@@ -56,5 +63,14 @@ router.delete('/services/:id', ctrlServices.servicesDelete);
 router.get('/sitecontent', ctrlSiteContent.siteContentList);
 router.get('/sitecontent/:section', ctrlSiteContent.siteContentGetSection);
 router.put('/sitecontent/:section', ctrlSiteContent.siteContentUpsertSection);
+
+// rutas para chatbot
+router.get('/chatbot/faqs', ctrlChatbot.getFAQs);
+router.post('/chatbot/ask', ctrlChatbot.askChatbot);
+router.post('/chatbot/admin/seed', ctrlChatbot.seedFAQs);
+
+// rutas para estadísticas (admin)
+router.get('/stats/dashboard', ctrlStats.getDashboardStats);
+router.get('/stats/products', ctrlStats.getProductStats);
 
 module.exports = router;

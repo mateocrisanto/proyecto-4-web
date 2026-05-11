@@ -54,6 +54,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (filePath.endsWith('.mp3')) res.setHeader('Content-Type', 'audio/mpeg');
   }
 })); // Servir CSS, JS, imágenes desde public/
+app.use('/vite', express.static(path.join(__dirname, 'app_vite', 'dist'))); // Bundles React compilados con Vite
 
 // ── SESIÓN DE USUARIO ─────────────────────────────────────────────────────────
 // express-session guarda en memoria (por defecto) un objeto req.session por usuario.
@@ -68,6 +69,11 @@ app.use(session({
     maxAge: 8 * 60 * 60 * 1000  // 8 horas en milisegundos
   }
 }));
+
+app.use((req, res, next) => {
+  res.locals.viteDevUrl = process.env.VITE_DEV_SERVER_URL || '';
+  next();
+});
 
 // ── RUTAS ─────────────────────────────────────────────────────────────────────
 app.use('/api', apiRouter);                    // REST API — no requiere sesión de navegador

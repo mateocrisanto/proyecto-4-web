@@ -10,6 +10,7 @@ block content
           !{JSON.stringify({ title: title || '', servicios: servicios || [], miAsesoria: miAsesoria || null, userId: (sessionUser && sessionUser._id) ? sessionUser._id : null }).replace(/<\//g, '<\\/')}
 
 block scripts
-  script(src='https://unpkg.com/react@18/umd/react.production.min.js')
-  script(src='https://unpkg.com/react-dom@18/umd/react-dom.production.min.js')
-  script(type='module' src='/javascripts/react-contact.js')
+  if viteDevUrl
+    script(type='module' src=`${viteDevUrl}/src/entries/contact.jsx`)
+  else
+    script(type='module' src='/vite/contact.js')

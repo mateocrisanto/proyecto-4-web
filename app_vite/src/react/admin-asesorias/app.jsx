@@ -1,5 +1,5 @@
-import { safeParseJson } from '../shared/json.js';
-import { showToast } from '../shared/toast.js';
+import { safeParseJson } from '../shared/json.jsx';
+import { showToast } from '../shared/toast.jsx';
 
 function formatShortDate(raw) {
   if (!raw) return '';
@@ -515,3 +515,4 @@ export function mountAdminAsesoriasApp() {
 
   window.ReactDOM.createRoot(rootElement).render(e(AdminAsesoriasApp));
 }
+

@@ -12,6 +12,7 @@ block content
 block scripts
   if paypalClientId
     script(src=`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`)
-  script(src='https://unpkg.com/react@18/umd/react.production.min.js')
-  script(src='https://unpkg.com/react-dom@18/umd/react-dom.production.min.js')
-  script(type='module' src='/javascripts/react-cart.js')
+  if viteDevUrl
+    script(type='module' src=`${viteDevUrl}/src/entries/cart.jsx`)
+  else
+    script(type='module' src='/vite/cart.js')

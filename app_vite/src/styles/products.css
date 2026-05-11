@@ -1,0 +1,3 @@
+.product-card .btn[disabled] {
+  opacity: 0.65;
+}

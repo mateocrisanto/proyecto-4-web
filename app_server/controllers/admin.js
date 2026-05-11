@@ -54,6 +54,12 @@ const requireAdmin = (req, res, next) => {
     res.status(403).render('error', { message: 'Acceso restringido a administradores', error: { status: 403 } });
 };
 
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+// GET /admin
+const adminDashboardGet = (req, res) => {
+    res.render('admin_dashboard', { title: 'Dashboard del Administrador' });
+};
+
 // ── CATEGORÍAS DE PRODUCTOS (lista prestablecida) ────────────────────────────
 const PRODUCT_CATEGORIES = ['Redes', 'Accesorios', 'Kits', 'Equipos', 'Telefonía', 'Otros'];
 
@@ -262,6 +268,7 @@ const adminUsersDelete = async (req, res) => {
 
 module.exports = {
     requireAdmin,
+    adminDashboardGet,
     adminProductsGet,
     adminProductsCreate,
     adminProductsEditGet,

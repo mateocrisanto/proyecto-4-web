@@ -1,6 +1,7 @@
-import { safeParseJson } from '../shared/json.js';
-import { updateCartBadge } from '../shared/cartBadge.js';
-import { showToast } from '../shared/toast.js';
+import { safeParseJson } from '../shared/json.jsx';
+import { updateCartBadge } from '../shared/cartBadge.jsx';
+import { showToast } from '../shared/toast.jsx';
+import { SearchFilter } from './SearchFilter.jsx';
 
 export function mountProductsApp() {
   const rootElement = document.getElementById('products-react-root');
@@ -11,7 +12,7 @@ export function mountProductsApp() {
   }
 
   const e = window.React.createElement;
-  const { useMemo, useState } = window.React;
+  const { useMemo, useState, useEffect } = window.React;
 
   function ProductCard(props) {
     const product = props.product;
@@ -71,10 +72,45 @@ export function mountProductsApp() {
 
     const [loadingProductId, setLoadingProductId] = useState(null);
     const [products, setProducts] = useState(initialProducts);
+    const [categories, setCategories] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    // Cargar categorías al montar
+    useEffect(function loadCategories() {
+      fetch('/api/products/categories')
+        .then(res => res.json())
+        .then(cats => {
+          if (Array.isArray(cats)) setCategories(cats);
+        })
+        .catch(err => console.error('Error cargando categorías:', err));
+    }, []);
 
     const hasProducts = useMemo(function memoHasProducts() {
       return products.length > 0;
     }, [products]);
+
+    function applyFilters(filters) {
+      setIsSearching(true);
+      const queryParams = new URLSearchParams();
+      if (filters.q) queryParams.append('q', filters.q);
+      if (filters.minPrice) queryParams.append('minPrice', filters.minPrice);
+      if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice);
+      if (filters.categoria) queryParams.append('categoria', filters.categoria);
+      if (filters.sort) queryParams.append('sort', filters.sort);
+
+      fetch(`/api/products/search?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setProducts(data);
+          }
+        })
+        .catch(err => {
+          console.error('Error en búsqueda:', err);
+          showToast('Error al buscar productos', { type: 'danger', duration: 2600 });
+        })
+        .finally(() => setIsSearching(false));
+    }
 
     function onAddToCart(product) {
       if (Number(product.stock || 0) <= 0) {
@@ -122,15 +158,24 @@ export function mountProductsApp() {
     if (!hasProducts) {
       return e(
         'div',
-        { className: 'row' },
+        null,
+        e(SearchFilter, {
+          onFiltersChange: applyFilters,
+          categories: categories,
+          loading: isSearching
+        }),
         e(
           'div',
-          { className: 'col-12' },
+          { className: 'row mt-4' },
           e(
             'div',
-            { className: 'alert alert-info text-center', role: 'alert' },
-            e('h4', { className: 'mb-2' }, 'No hay productos disponibles en este momento'),
-            e('p', { className: 'mb-0' }, 'Intenta de nuevo en unos minutos o revisa la carga de datos de la API.')
+            { className: 'col-12' },
+            e(
+              'div',
+              { className: 'alert alert-info text-center', role: 'alert' },
+              e('h4', { className: 'mb-2' }, 'No hay productos disponibles'),
+              e('p', { className: 'mb-0' }, 'Intenta con otros filtros o búsqueda.')
+            )
           )
         )
       );
@@ -138,17 +183,27 @@ export function mountProductsApp() {
 
     return e(
       'div',
-      { className: 'row g-4' },
-      products.map(function renderProduct(product) {
-        return e(ProductCard, {
-          key: product._id,
-          product: product,
-          loadingProductId: loadingProductId,
-          onAddToCart: onAddToCart
-        });
-      })
+      null,
+      e(SearchFilter, {
+        onFiltersChange: applyFilters,
+        categories: categories,
+        loading: isSearching
+      }),
+      e(
+        'div',
+        { className: 'row g-4 mt-2' },
+        products.map(function renderProduct(product) {
+          return e(ProductCard, {
+            key: product._id,
+            product: product,
+            loadingProductId: loadingProductId,
+            onAddToCart: onAddToCart
+          });
+        })
+      )
     );
   }
 
   window.ReactDOM.createRoot(rootElement).render(e(ProductsApp));
 }
+

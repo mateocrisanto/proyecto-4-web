@@ -82,6 +82,39 @@ body {
     color: #e8e8f0;
 }
 
+/* ========== PAGE FADE TRANSITIONS ==========
+   Fade-in on load + fade-out before full-page navigation.
+   The JS helper adds/removes .page-fade-out on body.
+   ========================================== */
+body.app-shell,
+body.auth-shell {
+    opacity: 1;
+    transition: opacity 220ms ease;
+    animation: page-fade-in 260ms ease both;
+}
+
+body.page-fade-out {
+    opacity: 0;
+    animation: none;
+}
+
+@keyframes page-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.app-shell,
+    body.auth-shell {
+        transition: none;
+        animation: none;
+    }
+}
+
 .app-shell {
     min-height: 100vh;
     display: flex;
@@ -191,11 +224,13 @@ a:hover {
 /* ========== BRAND NAME ========== */
 .brand-name {
     font-family: 'Platinum Sign', serif;
-    font-size: clamp(20px, 4vw, 32px);
+    font-size: clamp(14px, 2.2vw, 20px);
     font-weight: normal;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     color: #fff !important;
-    padding-bottom: 25px;
+    line-height: 1.2;
+    padding-bottom: 0;
+    text-transform: uppercase;
 }
 
 .brand-name:hover {
@@ -881,163 +916,6 @@ a:hover {
     letter-spacing: 1px;
 }
 
-/* ========== ADMIN ASESORIAS LAYOUT ==========
-   Reserva espacio para el footer y evita que tape el input del chat. */
-.admin-asesorias-page {
-    min-height: calc(100dvh - 4.5rem - 76px);
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 1rem;
-}
-
-.admin-asesorias-workspace {
-    flex: 1 1 auto;
-    min-height: 460px;
-    height: auto;
-    overflow: hidden;
-}
-
-.admin-asesorias-list {
-    overflow-y: auto;
-    max-height: 100%;
-}
-
-.admin-asesorias-messages {
-    overflow-y: auto;
-    padding-bottom: 1rem;
-    min-height: 0;
-}
-
-.admin-asesoria-item {
-    cursor: pointer;
-    border-color: rgba(211,116,255,0.1) !important;
-    transition: background .2s ease, border-color .2s ease, transform .2s ease;
-    background: transparent;
-    border-left: 0;
-    border-right: 0;
-    border-top: 0;
-    color: inherit;
-}
-
-.admin-asesoria-item:hover,
-.admin-asesoria-item.is-active {
-    background: rgba(211,116,255,0.08);
-}
-
-.admin-asesoria-item:hover {
-    transform: translateX(2px);
-}
-
-.admin-asesoria-new-badge {
-    background: linear-gradient(90deg, rgba(17,193,245,.22), rgba(211,116,255,.24));
-    border: 1px solid rgba(113,228,244,.22);
-    color: var(--c-cyan-light);
-    font-size: .68rem;
-    font-weight: 600;
-}
-
-.admin-asesorias-chat-panel {
-    min-height: 0;
-    max-height: 100%;
-}
-
-.contact-chat-thread {
-    max-height: min(52vh, 540px);
-    overflow-y: auto;
-    padding-right: 0.35rem;
-    scroll-behavior: smooth;
-}
-
-.contact-chat-separator {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0.55rem 0 0.15rem;
-    color: #8f96b5;
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.contact-chat-separator::before,
-.contact-chat-separator::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.contact-chat-separator.is-support span {
-    color: var(--c-purple);
-}
-
-.contact-chat-separator.is-client span {
-    color: var(--c-cyan-light);
-}
-
-.contact-chat-bubble.is-support {
-    background: rgba(211,116,255,.12);
-    border: 1px solid rgba(211,116,255,.2);
-}
-
-.contact-chat-bubble.is-client {
-    background: rgba(100,220,255,.1);
-    border: 1px solid rgba(100,220,255,.2);
-}
-
-.contact-chat-bubble.is-new {
-    animation: contactSupportPulse 1.2s ease;
-    box-shadow: 0 0 0 1px rgba(211, 116, 255, 0.12), 0 10px 24px rgba(211, 116, 255, 0.12);
-}
-
-.contact-chat-status {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.5rem;
-    padding: 0.35rem 0.75rem;
-    border-radius: 999px;
-    background: rgba(113, 228, 244, 0.08);
-    border: 1px solid rgba(113, 228, 244, 0.16);
-    color: var(--c-cyan-light);
-    font-size: 0.78rem;
-}
-
-@keyframes contactSupportPulse {
-    0% {
-        transform: translateY(8px);
-        opacity: 0;
-        box-shadow: 0 0 0 0 rgba(211, 116, 255, 0.35);
-    }
-    45% {
-        opacity: 1;
-        box-shadow: 0 0 0 10px rgba(211, 116, 255, 0.05);
-    }
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(211, 116, 255, 0);
-    }
-}
-
-.contact-chat-thread::-webkit-scrollbar,
-.admin-asesorias-list::-webkit-scrollbar,
-.admin-asesorias-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.contact-chat-thread::-webkit-scrollbar-thumb,
-.admin-asesorias-list::-webkit-scrollbar-thumb,
-.admin-asesorias-messages::-webkit-scrollbar-thumb {
-    background: rgba(113, 228, 244, 0.22);
-    border-radius: 999px;
-}
-
-.contact-chat-thread::-webkit-scrollbar-track,
-.admin-asesorias-list::-webkit-scrollbar-track,
-.admin-asesorias-messages::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
-}
-
 /* Responsive: apila elementos en móvil */
 @media (max-width: 575.98px) {
     .footer-player {
@@ -1059,20 +937,6 @@ a:hover {
         max-width: 120px;
     }
 
-    .admin-asesorias-page {
-        min-height: auto;
-        padding-bottom: 1rem;
-    }
-
-    .admin-asesorias-workspace {
-        height: auto;
-        min-height: 0;
-        overflow: visible;
-    }
-
-    .contact-chat-thread {
-        max-height: 44vh;
-    }
 }
 
 /* =================================================================

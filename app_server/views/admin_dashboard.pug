@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    #admin-dashboard-root
+      //- El dashboard React se monta aquí
+
+block scripts
+  if viteDevUrl
+    script(type='module' src=`${viteDevUrl}/src/entries/admin-dashboard.jsx`)
+  else
+    script(type='module' src='/vite/adminDashboard.js')

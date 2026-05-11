@@ -21,7 +21,8 @@ const ctrl    = require('../controllers/admin');
 // Verificación de rol admin para TODAS las rutas de este router
 router.use(ctrl.requireAdmin);
 
-// ── Productos ─────────────────────────────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+router.get('/',                      ctrl.adminDashboardGet);      // dashboard principal
 router.get('/products',              ctrl.adminProductsGet);       // lista de productos
 router.post('/products',             ctrl.adminProductsCreate);    // crear producto (con imagen)
 router.get('/products/edit/:id',     ctrl.adminProductsEditGet);   // cargar producto para editar

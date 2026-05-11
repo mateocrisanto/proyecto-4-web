@@ -1,5 +1,5 @@
-import { safeParseJson } from '../shared/json.js';
-import { showToast } from '../shared/toast.js';
+import { safeParseJson } from '../shared/json.jsx';
+import { showToast } from '../shared/toast.jsx';
 
 function parseJsonResponse(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -533,3 +533,4 @@ export function mountContactApp() {
 
   window.ReactDOM.createRoot(rootElement).render(e(ContactApp));
 }
+

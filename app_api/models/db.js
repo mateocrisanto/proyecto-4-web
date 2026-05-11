@@ -9,6 +9,9 @@ require('./esquema_cart');
 require('./esquema_auth');
 require('./esquema_services');
 require('./esquema_sitecontent');
+require('./esquema_chatbot');
+require('./esquema_chatbot_messages');
+require('./esquema_orders');
 
 const dbURI =
   process.env.MONGODB_URI ||

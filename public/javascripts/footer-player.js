@@ -15,6 +15,8 @@
   var currentIndex = 0;
   var audioCtx     = null;
   var analyser     = null;
+  var audioSource  = null;
+  var useAnalyser  = true;
   var animFrame    = null;
   var playing      = false;
   var decaying     = false;
@@ -56,14 +58,22 @@
   }
 
   function setupAudioCtx() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.8;
-    var source = audioCtx.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
+    if (!useAnalyser || audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
+      audioSource = audioCtx.createMediaElementSource(audio);
+      audioSource.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    } catch (err) {
+      useAnalyser = false;
+      audioCtx = null;
+      analyser = null;
+      audioSource = null;
+      console.warn('Footer player: WebAudio no disponible, usando reproduccion directa.', err);
+    }
   }
 
   /* ── Loop único: idle / playing / decay en un solo requestAnimationFrame */
@@ -128,14 +138,38 @@
     animFrame = requestAnimationFrame(draw);
   }
 
+  function playCurrentTrack() {
+    return audio.play().catch(function (err) {
+      console.warn('Footer player: no se pudo reproducir el audio.', err);
+      return Promise.reject(err);
+    });
+  }
+
   function startPlaying() {
     setupAudioCtx();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    audio.play().catch(function () {});
-    playing  = true;
-    decaying = false;
-    btnPlay.innerHTML = '<i class="fas fa-pause"></i>';
-    /* draw() ya está corriendo; cambia automáticamente al modo audio */
+
+    var resumePromise = Promise.resolve();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      resumePromise = audioCtx.resume().catch(function (err) {
+        console.warn('Footer player: no se pudo reactivar AudioContext.', err);
+      });
+    }
+
+    resumePromise
+      .then(function () {
+        return playCurrentTrack();
+      })
+      .then(function () {
+        playing  = true;
+        decaying = false;
+        btnPlay.innerHTML = '<i class="fas fa-pause"></i>';
+        /* draw() ya está corriendo; cambia automáticamente al modo audio */
+      })
+      .catch(function () {
+        playing  = false;
+        decaying = true;
+        btnPlay.innerHTML = '<i class="fas fa-play"></i>';
+      });
   }
 
   function pausePlaying() {
@@ -154,19 +188,45 @@
   btnNext.addEventListener('click', function () {
     currentIndex = (currentIndex + 1) % playlist.length;
     loadTrack(currentIndex);
-    if (playing) audio.play().catch(function () {});
+    if (playing) {
+      playCurrentTrack().catch(function () {
+        playing = false;
+        decaying = true;
+        btnPlay.innerHTML = '<i class="fas fa-play"></i>';
+      });
+    }
   });
 
   btnPrev.addEventListener('click', function () {
     currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
     loadTrack(currentIndex);
-    if (playing) audio.play().catch(function () {});
+    if (playing) {
+      playCurrentTrack().catch(function () {
+        playing = false;
+        decaying = true;
+        btnPlay.innerHTML = '<i class="fas fa-play"></i>';
+      });
+    }
   });
 
   audio.addEventListener('ended', function () {
     currentIndex = (currentIndex + 1) % playlist.length;
     loadTrack(currentIndex);
-    if (playing) audio.play().catch(function () {});
+    if (playing) {
+      playCurrentTrack().catch(function () {
+        playing = false;
+        decaying = true;
+        btnPlay.innerHTML = '<i class="fas fa-play"></i>';
+      });
+    }
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && playing && audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(function (err) {
+        console.warn('Footer player: no se pudo reactivar al volver a la pestana.', err);
+      });
+    }
   });
 
   audio.addEventListener('timeupdate', function () {

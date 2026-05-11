@@ -142,4 +142,12 @@ html(lang='es' data-bs-theme='dark')
           span.footer-brand-name NEW TECH
           span.footer-copy © 2026
     script(src='/javascripts/footer-player.js')
+    script(src='/javascripts/page-transition.js')
+    //- Contenedor para el chatbot flotante
+    #chatbot-widget
+    //- Cargar script del chatbot
+    if viteDevUrl
+      script(type='module' src=`${viteDevUrl}/src/entries/chatbot.jsx`)
+    else
+      script(type='module' src='/vite/chatbot.js')
     block scripts

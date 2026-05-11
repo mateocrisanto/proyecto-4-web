@@ -23,6 +23,34 @@ function isConfiguredValue(value) {
   return Boolean(value) && !value.startsWith('TU_PAYPAL_');
 }
 
+function toCents(value) {
+  return Math.round(Number(value || 0) * 100);
+}
+
+function centsToMoney(cents) {
+  return (Number(cents || 0) / 100).toFixed(2);
+}
+
+async function parsePaypalError(response) {
+  const fallback = `PayPal error ${response.status}`;
+  try {
+    const body = await response.json();
+    const details = Array.isArray(body?.details) ? body.details : [];
+    const detail = details[0];
+    if (detail?.description) return detail.description;
+    if (body?.message) return body.message;
+    if (body?.name) return body.name;
+    return fallback;
+  } catch (_) {
+    try {
+      const text = await response.text();
+      return text || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+}
+
 // Lee las vars en cada llamada para que funcionen correctamente en Heroku
 function getPaypalConfig() {
   const mode = process.env.PAYPAL_MODE || 'sandbox';
@@ -79,18 +107,36 @@ const crearOrden = async (req, res) => {
     }
 
     const cart = cartRes.body;
-    const subtotal = cart.total.toFixed(2);
-    const tax      = (cart.total * 0.15).toFixed(2);
-    const total    = (cart.total * 1.15).toFixed(2);
 
-    const items = cart.items.map(item => ({
-      name:     item.nombre.substring(0, 127),
-      quantity: String(item.cantidad),
-      unit_amount: {
-        currency_code: 'USD',
-        value: item.precio.toFixed(2)
-      }
-    }));
+    const items = cart.items
+      .map(item => {
+        const quantity = Math.max(0, Math.floor(Number(item.cantidad || 0)));
+        const unitCents = toCents(item.precio);
+        return {
+          name: String(item.nombre || 'Producto').substring(0, 127),
+          quantity,
+          unitCents
+        };
+      })
+      .filter(item => item.quantity > 0)
+      .map(item => ({
+        name: item.name,
+        quantity: String(item.quantity),
+        unit_amount: {
+          currency_code: 'USD',
+          value: centsToMoney(item.unitCents)
+        }
+      }));
+
+    const subtotalCents = items.reduce((sum, item) => {
+      return sum + Math.round(Number(item.unit_amount.value) * 100) * Number(item.quantity);
+    }, 0);
+    const taxCents = Math.round(subtotalCents * 0.15);
+    const totalCents = subtotalCents + taxCents;
+
+    const subtotal = centsToMoney(subtotalCents);
+    const tax = centsToMoney(taxCents);
+    const total = centsToMoney(totalCents);
 
     const token = await getAccessToken();
 
@@ -118,9 +164,9 @@ const crearOrden = async (req, res) => {
     });
 
     if (!orderRes.ok) {
-      const err = await orderRes.text();
+      const err = await parsePaypalError(orderRes);
       console.error('PayPal create order error:', err);
-      return res.status(500).json({ error: 'Error al crear orden en PayPal' });
+      return res.status(500).json({ error: `PayPal rechazo la orden: ${err}` });
     }
 
     const order = await orderRes.json();
@@ -153,9 +199,9 @@ const capturarOrden = async (req, res) => {
     });
 
     if (!captureRes.ok) {
-      const err = await captureRes.text();
+      const err = await parsePaypalError(captureRes);
       console.error('PayPal capture error:', err);
-      return res.status(500).json({ error: 'Error al capturar pago' });
+      return res.status(500).json({ error: `PayPal no pudo capturar el pago: ${err}` });
     }
 
     const capture = await captureRes.json();

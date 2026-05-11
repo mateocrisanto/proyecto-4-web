@@ -5,3 +5,4 @@ export function safeParseJson(raw, fallback) {
     return fallback;
   }
 }
+

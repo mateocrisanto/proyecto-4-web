@@ -1,6 +1,6 @@
-import { safeParseJson } from '../shared/json.js';
-import { updateCartBadge } from '../shared/cartBadge.js';
-import { showToast } from '../shared/toast.js';
+import { safeParseJson } from '../shared/json.jsx';
+import { updateCartBadge } from '../shared/cartBadge.jsx';
+import { showToast } from '../shared/toast.jsx';
 
 function formatMoney(value) {
   return '$' + Number(value || 0).toFixed(2);
@@ -75,11 +75,17 @@ export function mountCartApp() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             })
-              .then(function (res) { return res.json(); })
+              .then(function (res) {
+                return res.json().then(function (data) {
+                  if (!res.ok) {
+                    throw new Error(data && data.error ? data.error : 'No se pudo crear la orden en PayPal.');
+                  }
+                  return data;
+                });
+              })
               .then(function (data) {
-                if (data.error) {
-                  showToast('Error: ' + data.error, { type: 'danger', duration: 3200 });
-                  return null;
+                if (!data || !data.orderID) {
+                  throw new Error('PayPal no devolvio un orderID valido.');
                 }
                 return data.orderID;
               });
@@ -90,13 +96,23 @@ export function mountCartApp() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ orderID: data.orderID })
             })
-              .then(function (res) { return res.json(); })
+              .then(function (res) {
+                return res.json().then(function (result) {
+                  if (!res.ok) {
+                    throw new Error(result && result.error ? result.error : 'No se pudo capturar el pago en PayPal.');
+                  }
+                  return result;
+                });
+              })
               .then(function (result) {
                 if (result.success) {
                   window.location.href = '/pago/exito';
                 } else {
-                  showToast('Error al procesar el pago. Intenta nuevamente.', { type: 'danger', duration: 3200 });
+                  throw new Error(result && result.error ? result.error : 'Error al procesar el pago. Intenta nuevamente.');
                 }
+              })
+              .catch(function (error) {
+                showToast(error.message || 'Error al procesar el pago.', { type: 'danger', duration: 3200 });
               });
           },
           onError: function onError(err) {
@@ -388,3 +404,4 @@ export function mountCartApp() {
 
   window.ReactDOM.createRoot(rootElement).render(e(CartApp));
 }
+

@@ -21,3 +21,4 @@ export function updateCartBadge(itemsCount) {
   badge.textContent = String(itemsCount);
   cartLink.appendChild(badge);
 }
+
