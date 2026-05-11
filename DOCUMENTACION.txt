@@ -2,6 +2,7 @@
   NEW TECH ISP — DOCUMENTACIÓN TÉCNICA COMPLETA
   Proyecto: Plataforma web para proveedor de servicios de internet (ISP)
   Stack:    Node.js + Express + Pug + MongoDB Atlas + Bootstrap 5
+  Última actualización: Mayo 2026
 ================================================================================
 
 ÍNDICE
@@ -17,11 +18,12 @@
   9.  Sistema de sesiones
   10. Panel de administración
   11. Medidor de velocidad (LibreSpeed)
-  12. Carrito de compras
-  13. Servicios e Asesorías
-  14. Sistema de diseño (CSS)
-  15. Flujo completo de una petición HTTP
-  16. Archivos importantes y su función
+  12. Carrito de compras y pagos PayPal
+  13. Servicios y Asesorías (chat incluido)
+  14. Contenido del sitio (SiteContent)
+  15. Sistema de diseño (CSS)
+  16. Flujo completo de una petición HTTP
+  17. Archivos importantes y su función
 
 
 ================================================================================
@@ -39,8 +41,9 @@ New Tech es una aplicación web de e-commerce / portal de servicios para un ISP
 Y a los administradores:
   - Gestionar el catálogo de productos (CRUD + subida de imágenes)
   - Gestionar los planes de servicios (CRUD)
-  - Ver y eliminar solicitudes de asesoría
+  - Ver y eliminar solicitudes de asesoría, y responder vía chat
   - Ver y eliminar usuarios registrados
+  - Editar el contenido del sitio desde la base de datos (SiteContent)
 
 
 ================================================================================
@@ -64,7 +67,8 @@ ISP_proyedcto/
 │   │   ├── auth.js           ← Lógica de registro, login, perfil y usuarios
 │   │   ├── products.js       ← CRUD de productos
 │   │   ├── services.js       ← CRUD de planes de servicios
-│   │   ├── asesorias.js      ← CRUD de solicitudes de asesoría
+│   │   ├── asesorias.js      ← CRUD de solicitudes de asesoría + chat de mensajes
+│   │   ├── sitecontent.js    ← CRUD del contenido configurable del sitio (SiteContent)
 │   │   └── cart.js           ← Lógica del carrito (basado en sesión de cookie)
 │   ├── models/
 │   │   ├── db.js             ← Conexión a MongoDB Atlas con Mongoose
@@ -72,7 +76,8 @@ ISP_proyedcto/
 │   │   ├── esquema_products.js ← Modelo de productos
 │   │   ├── esquema_services.js ← Modelo de planes de servicios
 │   │   ├── esquema_cart.js   ← Modelo del carrito
-│   │   └── esquema_asesorias.js ← Modelo de solicitudes de asesoría
+│   │   ├── esquema_asesorias.js ← Modelo de solicitudes de asesoría (con chat)
+│   │   └── esquema_sitecontent.js ← Modelo de contenido configurable del sitio
 │   └── routes/
 │       └── index.js          ← Define todas las rutas /api/*
 │
@@ -84,6 +89,8 @@ ISP_proyedcto/
 │   │   ├── auth.js           ← Login, registro, logout, acceso de invitado
 │   │   ├── admin.js          ← Panel de administración + multer (subida de imágenes)
 │   │   ├── profile.js        ← Ver y actualizar perfil del usuario
+│   │   ├── paypal.js         ← Integración con PayPal REST API (crear/capturar órdenes)
+│   │   ├── users.js          ← CRUD de usuarios desde la capa de servidor
 │   │   └── speedtest_backend.js ← Endpoints backend de LibreSpeed
 │   ├── lib/
 │   │   └── apiClient.js      ← Cliente axios para llamadas internas al /api
@@ -92,7 +99,8 @@ ISP_proyedcto/
 │   ├── routes/
 │   │   ├── index.js          ← Rutas de páginas principales (requieren sesión)
 │   │   ├── auth.js           ← Rutas públicas: /login, /register, /logout, /guest
-│   │   └── admin.js          ← Rutas del panel /admin/* (requieren rol admin)
+│   │   ├── admin.js          ← Rutas del panel /admin/* (requieren rol admin)
+│   │   └── users.js          ← Rutas de gestión de usuarios (/users/*)
 │   └── views/                ← Plantillas Pug (HTML dinámico)
 │       ├── layout.pug        ← Base de todas las páginas: navbar, footer
 │       ├── auth_layout.pug   ← Base para login/register: sin navbar, centrado
@@ -106,8 +114,9 @@ ISP_proyedcto/
 │       ├── register.pug      ← Formulario de registro de cuenta
 │       ├── admin_products.pug    ← Panel admin: gestión de productos
 │       ├── admin_services.pug    ← Panel admin: gestión de servicios
-│       ├── admin_asesorias.pug   ← Panel admin: ver/eliminar asesorías
+│       ├── admin_asesorias.pug   ← Panel admin: ver/eliminar/chat asesorías
 │       ├── admin_users.pug       ← Panel admin: ver/eliminar usuarios
+│       ├── pago_exitoso.pug  ← Página de confirmación de pago PayPal exitoso
 │       ├── information.pug   ← Página informativa
 │       └── error.pug         ← Página de error genérica
 │
@@ -131,13 +140,16 @@ DEPENDENCIAS PRINCIPALES (package.json):
   express          5.2.1   ← Framework web principal
   pug              3.0.3   ← Motor de plantillas HTML
   mongoose         9.1.5   ← ODM para MongoDB
-  bcryptjs         ~       ← Hash seguro de contraseñas (12 rounds)
-  express-session  ~       ← Manejo de sesiones HTTP
-  axios            ~       ← Cliente HTTP para llamadas internas al /api
-  multer           ~       ← Subida de archivos (imágenes de productos)
-  dotenv           ~       ← Variables de entorno desde archivo .env
-  morgan           ~       ← Logger de peticiones HTTP
-  cookie-parser    ~       ← Parsear cookies
+  bcryptjs         3.0.3   ← Hash seguro de contraseñas (12 rounds)
+  express-session  1.19.0  ← Manejo de sesiones HTTP
+  axios            1.15.0  ← Cliente HTTP para llamadas internas al /api
+  multer           2.1.1   ← Subida de archivos (imágenes de productos)
+  dotenv           16.6.1  ← Variables de entorno desde archivo .env
+  morgan           1.10.1  ← Logger de peticiones HTTP
+  cookie-parser    1.4.7   ← Parsear cookies
+  readline         1.3.0   ← Manejo de señales SIGINT en Windows
+  @ookla/speedtest-js-sdk  2.1.1  ← SDK de Ookla para test de velocidad (incluido pero
+                                    la implementación activa usa LibreSpeed)
 
 VARIABLES DE ENTORNO (crear archivo .env en la raíz):
   PORT=3000                         ← Puerto del servidor (por defecto 3000)
@@ -146,6 +158,9 @@ VARIABLES DE ENTORNO (crear archivo .env en la raíz):
   API_SERVER=http://localhost:3000  ← (Opcional) URL base para llamadas internas
   API_TIMEOUT_MS=10000              ← (Opcional) Timeout en ms para llamadas a la API
   NODE_ENV=production               ← En producción cambia la URL base de la API
+  PAYPAL_CLIENT_ID=...              ← Client ID de la app PayPal (sandbox o live)
+  PAYPAL_CLIENT_SECRET=...          ← Secret de la app PayPal (sandbox o live)
+  PAYPAL_MODE=sandbox               ← 'sandbox' para pruebas, 'live' para producción
 
 
 ================================================================================
@@ -256,14 +271,37 @@ COLECCIÓN: services (esquema_services.js)
 COLECCIÓN: asesorias (esquema_asesorias.js)
   Campos:
     nombre   String  nombre del cliente
-    consulta String  texto de la consulta
-    fecha    Date    automático
+    consulta String  texto de la consulta inicial
+    servicio String  tipo de servicio consultado (default: 'Otra consulta')
+    userId   String  ID del usuario que envió la solicitud (index, puede ser null)
+    mensajes Array   historial de chat: cada ítem tiene { autor, texto, enviado }
+                       autor: enum ['cliente', 'admin']
+                       texto: String
+                       enviado: Date (default: Date.now)
+    fecha    Date    automático (fecha de creación)
 
 COLECCIÓN: carts (esquema_cart.js)
   Campos:
     sessionId  String  identifica al carrito (cookie del navegador)
     items      Array   cada ítem tiene: productId, nombre, precio, cantidad, imagen
     updatedAt  Date    automático
+
+
+COLECCIÓN: sitecontent (esquema_sitecontent.js)
+  Propósito: almacena el contenido configurable del sitio para que el admin
+             pueda modificar textos, títulos y planes desde la DB sin tocar código.
+  Campos:
+    section  String  identificador único de la sección (índice único)
+    data     Mixed   objeto JSON con los datos de la sección
+
+  Secciones disponibles:
+    home        → Título, subtítulo y listas de planes principales del hero
+    information → Empresa, misión, visión, valores
+    contact     → Teléfono, email, dirección
+    products    → Título y textos de fallback para productos
+    cart        → Título del carrito
+    profile     → Título y mensaje del perfil
+    users       → Títulos y mensajes de formularios de usuario
 
 
 ================================================================================
@@ -299,14 +337,29 @@ RUTAS DE SERVICIOS:
 RUTAS DE ASESORÍAS:
   GET    /api/asesorias              ← Listar todas las solicitudes
   POST   /api/asesorias              ← Crear solicitud (enviado desde /contacto)
+  GET    /api/asesorias/user/:userId ← Obtener la asesoría más reciente de un usuario
+  GET    /api/asesorias/:id          ← Obtener una solicitud por ID
+  POST   /api/asesorias/:id/mensajes ← Agregar mensaje al chat de una solicitud
+                                        Body: { autor: 'cliente'|'admin', texto: String }
   DELETE /api/asesorias/:id          ← Eliminar solicitud
 
 RUTAS DEL CARRITO:
   GET    /api/cart/:sessionid        ← Obtener carrito de una sesión
   POST   /api/cart/add               ← Agregar ítem al carrito
-  POST   /api/cart/update            ← Actualizar cantidad de un ítem
-  POST   /api/cart/remove            ← Eliminar ítem del carrito
+  PUT    /api/cart/update            ← Actualizar cantidad de un ítem
+  DELETE /api/cart/remove            ← Eliminar ítem del carrito
   POST   /api/cart/clear             ← Vaciar carrito completo
+
+RUTAS DE SERVICIOS:
+  GET    /api/services               ← Listar todos los planes
+  POST   /api/services               ← Crear plan
+  PUT    /api/services/:id           ← Actualizar plan
+  DELETE /api/services/:id           ← Eliminar plan
+
+RUTAS DE CONTENIDO DEL SITIO:
+  GET    /api/sitecontent            ← Obtener todas las secciones como objeto
+  GET    /api/sitecontent/:section   ← Obtener datos de una sección específica
+  PUT    /api/sitecontent/:section   ← Crear o actualizar una sección (upsert)
 
 
 ================================================================================
@@ -414,11 +467,13 @@ SECCIÓN PRODUCTOS (/admin/products):
 SECCIÓN SERVICIOS (/admin/services):
   - Lista los planes agrupados por categoría (internet, telefonía, celular, canales)
   - Formulario para crear plan: nombre, descripción, categoría (dropdown)
+  - Botón editar por plan (PUT /api/services/:id)
   - Botón eliminar por plan
 
-SECCIÓN ASESORÍAS (/admin/asesorias):
+  SECCIÓN ASESORÍAS (/admin/asesorias):
   - Lista todas las solicitudes enviadas desde /contacto
-  - Muestra: nombre, consulta, fecha
+  - Muestra: nombre, servicio, consulta, fecha, historial de mensajes
+  - El admin puede escribir respuestas en el chat (POST /asesorias/:id/mensaje)
   - Botón eliminar por solicitud
   - NO permite crear nuevas (eso lo hacen los clientes)
 
@@ -481,7 +536,7 @@ RUTAS BACKEND (en app_server/routes/index.js):
 
 
 ================================================================================
-12. CARRITO DE COMPRAS
+12. CARRITO DE COMPRAS Y PAGOS PAYPAL
 ================================================================================
 
 El carrito está implementado como una sesión de base de datos separada
@@ -495,6 +550,13 @@ FLUJO DE AGREGAR AL CARRITO (desde products.pug):
   3. app_api/controllers/cart.js busca o crea el documento Cart en MongoDB
   4. Si el producto ya existe en items, incrementa la cantidad
   5. Si no, lo agrega como nuevo ítem
+
+RUTAS DEL CARRITO DESDE EL SERVIDOR (index.js):
+  POST   /cart/add     → ctrlMain.cartAddController
+  PUT    /cart/update  → ctrlMain.cartUpdateController
+  DELETE /cart/remove  → ctrlMain.cartRemoveController
+  POST   /cart/clear   → ctrlMain.cartClearController
+  GET    /cart         → ctrlMain.cartController (renderiza cart.pug)
 
 VISUALIZACIÓN DEL CARRITO (/cart):
   - main.js → cartController() lee el cartSessionId de la cookie
@@ -512,29 +574,106 @@ BADGE DEL NAVBAR:
   NOTA: El badge solo aparece en la página /cart. Para que aparezca en todas las páginas
   sería necesario cargar el carrito en un middleware global (posible mejora futura).
 
+INTEGRACIÓN CON PAYPAL:
+  La integración usa la REST API de PayPal directamente (sin SDK npm).
+  El botón se renderiza con el JS SDK de PayPal desde CDN en cart.pug.
+
+  Variables de entorno requeridas:
+    PAYPAL_CLIENT_ID     ← Client ID de la app PayPal
+    PAYPAL_CLIENT_SECRET ← Secret de la app PayPal
+    PAYPAL_MODE          ← 'sandbox' | 'live'
+
+  Flujo de pago:
+    1. El usuario hace clic en el botón PayPal en /cart
+    2. El navegador llama POST /pago/crear
+       → paypal.js lee el carrito, calcula el total con IVA (15%)
+       → Obtiene un Access Token de PayPal via OAuth2 client_credentials
+       → Crea una orden en la API de PayPal con los ítems del carrito
+       → Devuelve { orderID }
+    3. El SDK de PayPal muestra el popup de pago al usuario
+    4. El usuario aprueba el pago en el popup de PayPal
+    5. El navegador llama POST /pago/capturar con el orderID
+       → paypal.js captura la orden aprobada en la API de PayPal
+       → Si la captura es exitosa: vacía el carrito (POST /api/cart/clear)
+       → Devuelve { redirectUrl: '/pago/exito' }
+    6. El navegador redirige a GET /pago/exito
+       → Renderiza pago_exitoso.pug con confirmación del pago
+
+  Archivo: app_server/controllers/paypal.js
+  Rutas:   app_server/routes/index.js
+    POST /pago/crear    → crearOrden
+    POST /pago/capturar → capturarOrden
+    GET  /pago/exito    → pagoExito
+
 
 ================================================================================
-13. SERVICIOS Y ASESORÍAS
+13. SERVICIOS Y ASESORÍAS (CHAT INCLUIDO)
 ================================================================================
 
 SERVICIOS (planes de internet, telefonía, etc.):
   - Se almacenan en la colección 'services' de MongoDB
-  - El administrador los crea/elimina desde /admin/services
+  - El administrador los crea/edita/elimina desde /admin/services
   - La página /servicios los muestra agrupados por categoría (internet, telefonía, etc.)
   - Si la colección está vacía en MongoDB, se usa como fallback los planes
     estáticos definidos en app_server/config/siteContent.js
   - El controlador main.servicesController() primero consulta la API y si no
     hay datos usa el fallback.
 
-ASESORÍAS (solicitudes de contacto):
-  - El cliente llena el formulario en /contacto: nombre + consulta
+ASESORÍAS (solicitudes de contacto con chat):
+  - El cliente llena el formulario en /contacto: nombre, servicio + consulta
   - El JS del navegador hace fetch POST /api/asesorias (directo al API)
+    Body: { nombre, consulta, servicio, userId }
   - Se guarda en la colección 'asesorias' de MongoDB
-  - El administrador las ve y elimina desde /admin/asesorias
+  - El cliente puede ver su asesoría más reciente en /contacto con:
+      GET /api/asesorias/user/:userId  (usa el userId de la sesión)
+  - El cliente puede enviar mensajes adicionales al chat:
+      POST /api/asesorias/:id/mensajes  Body: { autor: 'cliente', texto }
+  - El administrador ve todas las asesorías en /admin/asesorias
+  - El administrador puede responder en el chat:
+      POST /admin/asesorias/:id/mensaje  Body: { texto }
+      (el controlador agrega automáticamente autor: 'admin')
+  - El administrador puede eliminar solicitudes desde /admin/asesorias
+
+RUTAS DEL CLIENTE (/contacto):
+  GET  /contacto          → muestra formulario + asesoría activa del usuario
+  POST /contacto          → crea nueva solicitud de asesoría
+  POST /contacto/mensaje  → agrega mensaje del cliente al chat
+  GET  /contacto/nueva    → limpia la asesoría activa y muestra formulario vacío
 
 
 ================================================================================
-14. SISTEMA DE DISEÑO (CSS)
+14. CONTENIDO DEL SITIO (SITECONTENT)
+================================================================================
+
+La colección 'sitecontent' permite al administrador modificar textos, títulos
+y datos del sitio sin tocar el código. Reemplaza las constantes estáticas de
+app_server/config/siteContent.js para las secciones que estén en la DB.
+
+MODELO (esquema_sitecontent.js):
+  section  String  identificador único  (índice único)
+  data     Mixed   objeto JSON libre    (cualquier estructura)
+
+CONTROLLER (app_api/controllers/sitecontent.js):
+  siteContentList          → GET  /api/sitecontent
+                             Devuelve { section1: data1, section2: data2, ... }
+  siteContentGetSection    → GET  /api/sitecontent/:section
+                             Devuelve solo data de esa sección
+  siteContentUpsertSection → PUT  /api/sitecontent/:section
+                             Crea o actualiza la sección con el body JSON enviado
+
+SECCIONES UTILIZADAS EN EL CÓDIGO:
+  'users'       → Leída por app_server/controllers/users.js
+                  Campos usados: createTitle, createMessage, createSuccessMessage
+                  (createSuccessMessage acepta el placeholder {id})
+  Otras secciones pueden añadirse para cualquier página sin cambiar el esquema.
+
+USO TÍPICO DESDE CONTROLADORES DEL SERVIDOR:
+  const { ok, body } = await requestApi('/api/sitecontent/home', { method: 'GET' });
+  if (ok) { /* usar body como objeto con los datos de la sección */ }
+
+
+================================================================================
+15. SISTEMA DE DISEÑO (CSS)
 ================================================================================
 
 PALETA DE COLORES:
@@ -583,7 +722,7 @@ RESPONSIVE:
 
 
 ================================================================================
-15. FLUJO COMPLETO DE UNA PETICIÓN HTTP
+16. FLUJO COMPLETO DE UNA PETICIÓN HTTP
 ================================================================================
 
 EJEMPLO: Usuario autenticado visita /products
@@ -633,7 +772,7 @@ EJEMPLO: Usuario autenticado visita /products
 
 
 ================================================================================
-16. ARCHIVOS IMPORTANTES Y SU FUNCIÓN
+17. ARCHIVOS IMPORTANTES Y SU FUNCIÓN
 ================================================================================
 
 app.js
@@ -656,10 +795,25 @@ app_server/middleware/requireAuth.js
 app_server/config/siteContent.js
   Constantes de UI: nombres de páginas, textos, planes estáticos de fallback.
   Permite cambiar textos del sitio sin tocar las vistas Pug.
+  NOTA: las secciones configuradas en la colección 'sitecontent' de MongoDB
+  tienen prioridad sobre estas constantes estáticas.
 
 app_api/models/db.js
   Establece la conexión con MongoDB y registra todos los modelos Mongoose.
-  Maneja errores de conexión y cierre limpio del proceso (SIGINT).
+  Maneja errores de conexión y cierre limpio del proceso (SIGINT/SIGTERM/SIGUSR2).
+
+app_api/models/esquema_sitecontent.js
+  Modelo MongoDB para el contenido configurable del sitio.
+  Usa mongoose.Schema.Types.Mixed para aceptar cualquier estructura de datos.
+
+app_api/controllers/sitecontent.js
+  Controlador REST para leer y escribir el contenido del sitio.
+  Usa findOneAndUpdate con upsert:true para crear o actualizar en un solo paso.
+
+app_server/controllers/paypal.js
+  Integración directa con la REST API de PayPal (sin SDK npm).
+  Lee las credenciales del entorno en cada llamada para compatibilidad con Heroku.
+  Incluye getAccessToken() vía OAuth2, crearOrden(), capturarOrden(), pagoExito().
 
 public/javascripts/speedtest.js + speedtest_worker.js
   Librería LibreSpeed completa. speedtest.js es la API pública (clase Speedtest),
@@ -677,5 +831,5 @@ populate.js
 
 ================================================================================
   FIN DEL DOCUMENTO
-  New Tech ISP — Plataforma web v1.0
+  New Tech ISP — Plataforma web v1.1
 ================================================================================

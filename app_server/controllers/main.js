@@ -48,6 +48,12 @@ const getPaypalClientId = () => {
   return clientId;
 };
 
+const requestWantsJson = (req) => {
+  const accept = req.get('accept') || '';
+  const requestedWith = (req.get('x-requested-with') || '').toLowerCase();
+  return accept.includes('application/json') || requestedWith === 'fetch' || req.xhr;
+};
+
 // ========== CONTROLADOR: PÁGINA DE INICIO ==========
 // GET /
 // Landing page con medidor de velocidad y productos/servicios destacados
@@ -172,16 +178,50 @@ const contactSubmitController = async (req, res) => {
 // POST /contacto/mensaje — usuario envía mensaje de seguimiento
 const contactMensajeController = async (req, res) => {
   const userId = req.session.user._id;
+  const { texto, asesoriaId } = req.body || {};
+  const wantsJson = requestWantsJson(req) || Boolean(asesoriaId);
+
+  if (!texto || !String(texto).trim()) {
+    if (wantsJson) {
+      return res.status(400).json({ message: 'El texto del mensaje es requerido' });
+    }
+    return res.redirect('/contacto');
+  }
+
   // Buscar la asesoría activa del usuario
   try {
-    const r = await requestApi(`/api/asesorias/user/${userId}`, { method: 'GET' });
-    if (r.ok && r.body && r.body._id) {
-      await requestApi(`/api/asesorias/${r.body._id}/mensajes`, {
-        method: 'POST',
-        body: JSON.stringify({ autor: 'cliente', texto: req.body.texto })
-      });
+    let targetAsesoriaId = asesoriaId;
+
+    if (!targetAsesoriaId) {
+      const r = await requestApi(`/api/asesorias/user/${userId}`, { method: 'GET' });
+      if (r.ok && r.body && r.body._id) {
+        targetAsesoriaId = r.body._id;
+      }
     }
-  } catch (e) { /* ignorar, redirigir igual */ }
+
+    if (targetAsesoriaId) {
+      const msgResult = await requestApi(`/api/asesorias/${targetAsesoriaId}/mensajes`, {
+        method: 'POST',
+        body: JSON.stringify({ autor: 'cliente', texto: String(texto).trim() })
+      });
+
+      if (wantsJson) {
+        if (!msgResult.ok) {
+          return res.status(msgResult.status || 500).json(msgResult.body || { message: 'No se pudo enviar el mensaje' });
+        }
+        return res.status(200).json(msgResult.body);
+      }
+    }
+
+    if (wantsJson) {
+      return res.status(404).json({ message: 'No se encontro una asesoria activa' });
+    }
+  } catch (e) {
+    if (wantsJson) {
+      return res.status(500).json({ message: 'Error al enviar mensaje' });
+    }
+  }
+
   res.redirect('/contacto');
 };
 

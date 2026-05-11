@@ -213,12 +213,24 @@ const adminAsesoriasDelete = async (req, res) => {
 
 // POST /admin/asesorias/:id/mensaje — admin envía mensaje al chat
 const adminAsesoriasMensaje = async (req, res) => {
+    const accept = req.get('accept') || '';
+    const requestedWith = (req.get('x-requested-with') || '').toLowerCase();
+    const wantsJson = accept.includes('application/json') || requestedWith === 'fetch' || req.xhr;
+
     try {
-        await requestApi(`/api/asesorias/${req.params.id}/mensajes`, {
+        const result = await requestApi(`/api/asesorias/${req.params.id}/mensajes`, {
             method: 'POST',
             body: JSON.stringify({ autor: 'admin', texto: req.body.texto })
         });
+        if (wantsJson) {
+            return res.status(result.status || 200).json(result.body || { message: 'OK' });
+        }
     } catch (e) { /* ignore */ }
+
+    if (wantsJson) {
+        return res.status(500).json({ message: 'No se pudo enviar el mensaje' });
+    }
+
     res.redirect('/admin/asesorias');
 };
 

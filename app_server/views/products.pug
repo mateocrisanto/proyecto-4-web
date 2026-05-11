@@ -6,83 +6,11 @@ block content
       .col-12
         h1.display-4.text-center.mb-5 #{title}
         p.lead.text-center.mb-5 Explora nuestros productos tecnológicos de alta calidad
+    #products-react-root
+    script(type='application/json' id='products-initial-data').
+      !{JSON.stringify({ products: products || [] }).replace(/<\//g, '<\\/')}
 
-    if products && products.length > 0
-      .row.g-4
-        each product in products
-          .col-lg-4.col-md-6
-            .card.h-100.shadow-sm.product-card
-              img.card-img-top(src=(product.imagen || '/images/placeholder.png'), alt=(product.nombre || 'Producto'), onerror="this.src='/images/placeholder.png'")
-              .card-body.d-flex.flex-column
-                h5.card-title= product.nombre || 'Producto sin nombre'
-                p.card-text= product.descripcion || 'Sin descripción disponible.'
-                .mt-auto
-                  .d-flex.justify-content-between.align-items-center.mb-3
-                    .price
-                        strong $#{Number(product.precio || 0).toFixed(2)}
-                    small.text-muted Stock: #{Number(product.stock || 0)}
-                  button.btn.btn-primary.w-100.add-to-cart-btn(
-                    data-product-id=product._id,
-                    data-product-name=(product.nombre || 'Producto sin nombre'),
-                    data-product-price=(product.precio || 0),
-                    data-product-image=(product.imagen || '/images/placeholder.png')
-                  ) Añadir al Carrito
-    else
-      .row
-        .col-12
-          .alert.alert-info.text-center(role='alert')
-            h4.mb-2 No hay productos disponibles en este momento
-            p.mb-0 Intenta de nuevo en unos minutos o revisa la carga de datos de la API.
-
-    // Modal de confirmación
-    .modal.fade#add-to-cart-modal(tabindex='-1')
-      .modal-dialog
-        .modal-content
-          .modal-header
-            h5.modal-title Producto añadido al carrito
-            button.btn-close(type='button', data-bs-dismiss='modal')
-          .modal-body
-            p El producto ha sido añadido a tu carrito de compras.
-          .modal-footer
-            button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Continuar comprando
-            a.btn.btn-primary#modal-cart-link(href='/cart') Ver carrito
-
-  script.
-    document.addEventListener('DOMContentLoaded', function() {
-      const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-      const modalElement = document.getElementById('add-to-cart-modal');
-      const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
-      const modalCartLink = document.getElementById('modal-cart-link');
-
-      addToCartButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const productId = this.getAttribute('data-product-id');
-
-          // Enviar a API
-          fetch('/cart/add', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              productId: productId,
-              cantidad: 1
-            })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data._id) {
-              if (modal) {
-                modal.show();
-              }
-            } else {
-              alert('Error al añadir al carrito: ' + (data.message || 'Error desconocido'));
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Error de conexión');
-          });
-        });
-      });
-    });
+block scripts
+  script(src='https://unpkg.com/react@18/umd/react.production.min.js')
+  script(src='https://unpkg.com/react-dom@18/umd/react-dom.production.min.js')
+  script(type='module' src='/javascripts/react-products.js')
