@@ -72,10 +72,10 @@ const homepageController = async (req, res, next) => {
       title: homeContent.title,
       subtitle: homeContent.subtitle,
       featuredProducts,
-      mainInternetPlans: homeContent.mainInternetPlans,
-      mainPhonePlans: homeContent.mainPhonePlans,
-      mainMobilePlans: homeContent.mainMobilePlans,
-      mainChannels: homeContent.mainChannels
+      mainInternetPlans: Array.isArray(homeContent.mainInternetPlans) ? homeContent.mainInternetPlans : [],
+      mainPhonePlans: Array.isArray(homeContent.mainPhonePlans) ? homeContent.mainPhonePlans : [],
+      mainMobilePlans: Array.isArray(homeContent.mainMobilePlans) ? homeContent.mainMobilePlans : [],
+      mainChannels: Array.isArray(homeContent.mainChannels) ? homeContent.mainChannels : []
     });
   } catch (err) {
     console.log('Error al cargar la página de inicio:', err);

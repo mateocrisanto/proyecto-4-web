@@ -44,7 +44,7 @@ mongoose
   });
 
 mongoose.connection.on('connected', () => {
-  console.log('Mongoose conectado a ' + dbURI);
+  console.log('Mongoose conectado a MongoDB.');
 });
 
 mongoose.connection.on('error', (err) => {
